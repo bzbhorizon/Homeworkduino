@@ -3,20 +3,27 @@
  */
 package bzb.se.ui;
 
-import bzb.se.bridge.Bridge;
+import processing.core.PApplet;
+
 
 /**
  * @author bzb
  *
  */
-public class Basic {
+@SuppressWarnings("serial")
+public class Basic extends PApplet {
 
-	/**
-	 * @param args
-	 */
-	public static void main(String[] args) {
-		Bridge bridge = new Bridge(6);
-		bridge.testPattern();
+	public static void main(String args[]) {
+		String className = Basic.class.getName();
+	    PApplet.main(new String[] { "--present", className });
+	}
+	
+	public void setup() {
+		size(200, 200);
+	}
+	
+	public void draw() {
+		
 	}
 
 }
