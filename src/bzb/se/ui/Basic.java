@@ -3,18 +3,20 @@
  */
 package bzb.se.ui;
 
+import bzb.se.bridge.Bridge;
+
 /**
- * @author psxbdb
+ * @author bzb
  *
  */
-public class Hello {
+public class Basic {
 
 	/**
 	 * @param args
 	 */
 	public static void main(String[] args) {
-		// TODO Auto-generated method stub
-		System.out.println("Hello homework");
+		Bridge bridge = new Bridge(6);
+		bridge.testPattern();
 	}
 
 }
