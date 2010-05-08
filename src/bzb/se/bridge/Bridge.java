@@ -15,11 +15,20 @@ import gnu.io.SerialPortEvent;
 import gnu.io.SerialPortEventListener;
 import gnu.io.UnsupportedCommOperationException;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.Enumeration;
 import java.util.TooManyListenersException;
+
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
+
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+import org.xml.sax.SAXException;
 
 public class Bridge implements Runnable, SerialPortEventListener {
 	static CommPortIdentifier portId;
@@ -27,6 +36,12 @@ public class Bridge implements Runnable, SerialPortEventListener {
 	InputStream inputStream;
 	OutputStream outputStream;
 	SerialPort serialPort;
+	
+	DataSender ds;
+	
+	static final String configFileURL = "res/config.xml";
+	
+	int role;
 	
 	public Bridge (int commPort) {
 		Enumeration<CommPortIdentifier> portList = CommPortIdentifier.getPortIdentifiers();
@@ -42,7 +57,15 @@ public class Bridge implements Runnable, SerialPortEventListener {
 		System.out.println("Search ended");
 	}
 	
+	public static void main(String args[]) {
+		new Bridge(Integer.parseInt(args[0]));
+	}
+	
 	public void end() {
+		if (ds != null) {
+			ds.end();
+		}
+		
 		if (outputStream != null) {
 			try {
 				outputStream.close();
@@ -71,6 +94,14 @@ public class Bridge implements Runnable, SerialPortEventListener {
 			serialPort.notifyOnDataAvailable(true);
 			serialPort.setSerialPortParams(9600, SerialPort.DATABITS_8,
 					SerialPort.STOPBITS_1, SerialPort.PARITY_NONE);
+			
+			try {
+				Thread.sleep(2000);
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+			
+			ds = new DataSender();
 		} catch (UnsupportedCommOperationException e) {
 			System.out.println(e);
 		} catch (PortInUseException e) {
@@ -83,22 +114,26 @@ public class Bridge implements Runnable, SerialPortEventListener {
 	}
 	
 	public void testPattern () {
-		if (outputStream != null) {
-			new Thread(new Runnable() {
-				public void run () {
-					for (int i = 48; i < 61; i++) {
-						try {
-							outputStream.write(i);
-							System.out.println("written " + i);
-							Thread.sleep(1500);
-						} catch (IOException e) {
-							e.printStackTrace();
-						} catch (InterruptedException e) {
-							e.printStackTrace();
-						}
-					}
+		new Thread(new Runnable() {
+			public void run () {
+				for (int i = 48; i < 61; i++) {
+					send(i);
 				}
-			}).start();
+			}
+		}).start();
+	}
+	
+	public void send (int data) {
+		if (outputStream != null) {
+			try {
+				outputStream.write(data);
+				System.out.println("written " + data);
+				Thread.sleep(1500);
+			} catch (IOException e) {
+				e.printStackTrace();
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
 		}
 	}
 
@@ -127,5 +162,44 @@ public class Bridge implements Runnable, SerialPortEventListener {
 			}
 			break;
 		}
+	}
+	
+	public void updateRole () {
+		DocumentBuilderFactory docBuilderFactory = DocumentBuilderFactory
+		.newInstance();
+		DocumentBuilder docBuilder;
+		try {
+			docBuilder = docBuilderFactory.newDocumentBuilder();
+			Document doc = docBuilder.parse(new File(configFileURL));
+			doc.getDocumentElement().normalize();
+			role = Integer.parseInt(((Element)(doc.getElementsByTagName("config").item(0))).getAttribute("role"));
+		} catch (ParserConfigurationException e) {
+			e.printStackTrace();
+		} catch (SAXException e) {
+			e.printStackTrace();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+	
+	public class DataSender implements Runnable {
+		
+		private boolean end = false;
+		
+		public DataSender () {
+			updateRole();
+			new Thread(this).start();
+		}
+		
+		public void run () {
+			while (!end) {
+				send(role + 48);
+			}
+		}
+		
+		public void end () {
+			end = true;
+		}
+		
 	}
 }
