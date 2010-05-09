@@ -1,30 +1,25 @@
 #include "Rainbow.h"
-unsigned char NumTab[9]=
-{ 
-  //0x00,0x01,0x02,0x03,0x04,0x05,0x06,0x07,0x08,0x09,0x0a,0x0b,0x0c,0x0d,0x0e,0x0f
-  0,1,2,3,4,5,6,7,8
-};
+
 void setup()
 {
   _init();
   close_all_line;
   open_line0;
-    open_line1;
-      open_line2;
-        open_line3;
-          open_line4;
-            open_line5;
-              open_line6;
-                open_line7;
-                
+  open_line1;
+  open_line2;
+  open_line3;
+  open_line4;
+  open_line5;
+  open_line6;
+  open_line7;
+  Serial.begin(9600);                
 }
 void loop()
 {
-  int i;
-  for(i=0;i<9;i++)
-  {
-    shift_24_bit(NumTab[i],0,0);
-    delay(500);
+  char data;
+  if (Serial.available() > 0) {
+    data = Serial.read();
+    shift_24_bit(data,0,0);
   }
 }
 void _init(void)    // define the pin mode
