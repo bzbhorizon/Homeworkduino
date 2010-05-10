@@ -5,6 +5,7 @@
 	<property name="build" location="bin" />
 	<property name="lib" location="lib" />
 	<property name="res" location="res" />
+	<property name="dist" location="dist" />
 
 	<target name="init" description="Prepare the filesystem for compilation">
 		<tstamp />
@@ -12,7 +13,7 @@
 	</target>
 
 	<target name="compile" depends="init" description="Compile the source">
-		<javac srcdir="${src}" destdir="${build}">
+		<javac srcdir="${src}" destdir="${build}" includes="bzb/se/**">
 			<classpath>
 				<fileset dir="${lib}">
 					<include name="*.jar" />
@@ -25,6 +26,23 @@
 
 	<target name="clean" description="Remove the components">
 		<delete dir="${build}" />
+		<delete dir="${dist}" />
+	</target>
+	
+	<target name="dist" depends="compile" description="Jarify the components">
+		<unzip dest="${build}">
+			<fileset dir="${lib}">
+		        <include name="*.jar" />
+			</fileset>
+		</unzip>
+
+		<jar destfile="${dist}/homeworkduino.jar"
+			basedir="${build}"
+			excludes="bzb/arduino/**" />
+
+		<copy file="run_dist.bat" tofile="${dist}/run.bat" />
+		
+		<delete dir="${build}" excludes="bzb/**" />
 	</target>
 
 </project>
