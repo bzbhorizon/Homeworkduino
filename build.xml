@@ -43,6 +43,10 @@
 		<copy file="run_dist.bat" tofile="${dist}/run.bat" />
 		
 		<delete dir="${build}" excludes="bzb/**" />
+		
+		<zip destfile="${dist}/homeworkduino.zip"
+		       basedir="${dist}"
+		  />
 	</target>
 
 </project>

@@ -36,9 +36,7 @@ public class Bridge implements Runnable, SerialPortEventListener {
 	InputStream inputStream;
 	OutputStream outputStream;
 	SerialPort serialPort;
-	
-	DataSender ds;
-	
+		
 	static final String configFileURL = "res/config.xml";
 	
 	int role;
@@ -62,10 +60,6 @@ public class Bridge implements Runnable, SerialPortEventListener {
 	}
 	
 	public void end() {
-		if (ds != null) {
-			ds.end();
-		}
-		
 		if (outputStream != null) {
 			try {
 				outputStream.close();
@@ -100,8 +94,8 @@ public class Bridge implements Runnable, SerialPortEventListener {
 			} catch (InterruptedException e) {
 				e.printStackTrace();
 			}
-			
-			ds = new DataSender();
+
+			updateRole();
 		} catch (UnsupportedCommOperationException e) {
 			System.out.println(e);
 		} catch (PortInUseException e) {
@@ -173,6 +167,7 @@ public class Bridge implements Runnable, SerialPortEventListener {
 			Document doc = docBuilder.parse(new File(configFileURL));
 			doc.getDocumentElement().normalize();
 			role = Integer.parseInt(((Element)(doc.getElementsByTagName("config").item(0))).getAttribute("role"));
+			send(role);
 		} catch (ParserConfigurationException e) {
 			e.printStackTrace();
 		} catch (SAXException e) {
@@ -181,25 +176,5 @@ public class Bridge implements Runnable, SerialPortEventListener {
 			e.printStackTrace();
 		}
 	}
-	
-	public class DataSender implements Runnable {
-		
-		private boolean end = false;
-		
-		public DataSender () {
-			updateRole();
-			new Thread(this).start();
-		}
-		
-		public void run () {
-			while (!end) {
-				send(role + 48);
-			}
-		}
-		
-		public void end () {
-			end = true;
-		}
-		
-	}
+
 }
