@@ -1,2 +1,2 @@
-java -cp homeworkduino.jar bzb.se.ui.Basic 7
+java -cp homeworkduino.jar bzb.se.ui.Basic 9
 pause

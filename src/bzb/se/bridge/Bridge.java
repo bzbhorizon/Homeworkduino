@@ -30,6 +30,8 @@ import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.xml.sax.SAXException;
 
+import bzb.se.Utility;
+
 public class Bridge implements Runnable, SerialPortEventListener {
 	static CommPortIdentifier portId;
 
@@ -42,7 +44,7 @@ public class Bridge implements Runnable, SerialPortEventListener {
 	int role;
 	
 	public Bridge (int commPort) {
-		Enumeration<CommPortIdentifier> portList = CommPortIdentifier.getPortIdentifiers();
+		/*Enumeration<CommPortIdentifier> portList = CommPortIdentifier.getPortIdentifiers();
 		while (portList.hasMoreElements()) {
 			portId = portList.nextElement();
 			if (portId.getPortType() == CommPortIdentifier.PORT_SERIAL) {
@@ -53,6 +55,8 @@ public class Bridge implements Runnable, SerialPortEventListener {
 			}
 		}
 		System.out.println("Search ended");
+		*/
+		sendWireless(110, 120);
 	}
 	
 	public static void main(String args[]) {
@@ -110,14 +114,16 @@ public class Bridge implements Runnable, SerialPortEventListener {
 	public void testPattern () {
 		new Thread(new Runnable() {
 			public void run () {
-				for (int i = 48; i < 61; i++) {
-					send(i);
+				byte[] testData = new byte[256];
+				for (int i = 0; i < 256; i++) {
+					testData[i] = (byte)i;
 				}
+				send(testData);
 			}
 		}).start();
 	}
 	
-	public void send (int data) {
+	public void send (byte[] data) {
 		if (outputStream != null) {
 			try {
 				outputStream.write(data);
@@ -129,6 +135,46 @@ public class Bridge implements Runnable, SerialPortEventListener {
 				e.printStackTrace();
 			}
 		}
+	}
+	
+	public static final int LEDS_PER_ROW = 8;
+	public static final int TOTAL_LEDS = 20;
+	public static final int ROWS = (int) Math.ceil((double)TOTAL_LEDS / (double)LEDS_PER_ROW);
+	public static byte[] leds = new byte[ROWS * 3];
+	
+	public void sendWireless (double strength, double maxStrength) {
+		//convert to percentage
+		double percentStr = strength / maxStrength;
+		
+		int greenLEDs = (int)(percentStr * TOTAL_LEDS);
+		int redLEDs = TOTAL_LEDS - greenLEDs;
+		
+		for (int i = 0; i < ROWS; i++) {
+			int greenThisRow = 0;
+			if (greenLEDs > LEDS_PER_ROW) {
+				greenThisRow = LEDS_PER_ROW;				
+			} else {
+				greenThisRow = greenLEDs;
+			}
+			greenLEDs -= greenThisRow;
+			leds[i * 3 + 1] = (byte) Utility.toBinary(greenThisRow);
+			
+			int remainingThisRow = LEDS_PER_ROW - greenThisRow;
+			int redThisRow = 0;
+			if (redLEDs > remainingThisRow) {
+				redThisRow = remainingThisRow;		
+			} else {
+				redThisRow = redLEDs;
+			}
+			redLEDs -= redThisRow;
+			System.out.print(Utility.toBinary(greenThisRow, redThisRow) + " " + Utility.toBinary(greenThisRow) + " " + 0 + " ");
+			leds[i * 3] = (byte) Utility.toBinary(greenThisRow, redThisRow);
+		}
+		System.out.println();
+		for (int i = 0; i < leds.length; i++) {
+			System.out.print(leds[i] + " ");
+		}
+		//send(leds);
 	}
 
 	public void serialEvent(SerialPortEvent event) {
@@ -167,7 +213,7 @@ public class Bridge implements Runnable, SerialPortEventListener {
 			Document doc = docBuilder.parse(new File(configFileURL));
 			doc.getDocumentElement().normalize();
 			role = Integer.parseInt(((Element)(doc.getElementsByTagName("config").item(0))).getAttribute("role"));
-			send(role);
+			//send(role);
 		} catch (ParserConfigurationException e) {
 			e.printStackTrace();
 		} catch (SAXException e) {
