@@ -44,7 +44,7 @@ public class Bridge implements Runnable, SerialPortEventListener {
 	int role;
 	
 	public Bridge (int commPort) {
-		/*Enumeration<CommPortIdentifier> portList = CommPortIdentifier.getPortIdentifiers();
+		Enumeration<CommPortIdentifier> portList = CommPortIdentifier.getPortIdentifiers();
 		while (portList.hasMoreElements()) {
 			portId = portList.nextElement();
 			if (portId.getPortType() == CommPortIdentifier.PORT_SERIAL) {
@@ -55,8 +55,8 @@ public class Bridge implements Runnable, SerialPortEventListener {
 			}
 		}
 		System.out.println("Search ended");
-		*/
-		sendWireless(110, 120);
+		
+		//sendWireless(110, 120);
 	}
 	
 	public static void main(String args[]) {
@@ -174,7 +174,7 @@ public class Bridge implements Runnable, SerialPortEventListener {
 		for (int i = 0; i < leds.length; i++) {
 			System.out.print(leds[i] + " ");
 		}
-		//send(leds);
+		send(leds);
 	}
 
 	public void serialEvent(SerialPortEvent event) {
