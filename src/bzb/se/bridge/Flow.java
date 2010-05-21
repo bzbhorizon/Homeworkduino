@@ -1,7 +1,7 @@
 /**
  * 
  */
-package bzb.se.bridge.rpc;
+package bzb.se.bridge;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -94,7 +94,7 @@ public class Flow {
 		final long timeLong = Long.parseLong(time, 16);
 		flow.timeStamp = new Date(timeLong / 1000000);
 		final StringTokenizer tokenizer = new StringTokenizer(logLine
-				.substring(end + 1).trim(), ";");
+				.substring(end + 1).trim(), ":");
 
 		flow.protocolNumber = Integer.parseInt(tokenizer.nextToken());
 		flow.sourceIP = tokenizer.nextToken();

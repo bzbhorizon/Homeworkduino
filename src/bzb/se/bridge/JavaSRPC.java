@@ -1,4 +1,4 @@
-package bzb.se.bridge.rpc;
+package bzb.se.bridge;
 
 /**
  * 

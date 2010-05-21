@@ -31,6 +31,7 @@ import org.w3c.dom.Element;
 import org.xml.sax.SAXException;
 
 import bzb.se.Utility;
+import bzb.se.bridge.offline.Feed;
 
 public class Bridge implements Runnable, SerialPortEventListener {
 	static CommPortIdentifier portId;
@@ -44,7 +45,7 @@ public class Bridge implements Runnable, SerialPortEventListener {
 	int role;
 	
 	public Bridge (int commPort) {
-		Enumeration<CommPortIdentifier> portList = CommPortIdentifier.getPortIdentifiers();
+		/*Enumeration<CommPortIdentifier> portList = CommPortIdentifier.getPortIdentifiers();
 		while (portList.hasMoreElements()) {
 			portId = portList.nextElement();
 			if (portId.getPortType() == CommPortIdentifier.PORT_SERIAL) {
@@ -54,9 +55,11 @@ public class Bridge implements Runnable, SerialPortEventListener {
 				}
 			}
 		}
-		System.out.println("Search ended");
+		System.out.println("Search ended");*/
 		
 		//sendWireless(110, 120);
+		
+		new Thread(new Feed()).start();
 	}
 	
 	public static void main(String args[]) {

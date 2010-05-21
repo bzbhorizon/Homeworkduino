@@ -1,7 +1,7 @@
 /**
  * 
  */
-package bzb.se.bridge.rpc;
+package bzb.se.bridge;
 
 import java.util.ArrayList;
 import java.util.Collection;

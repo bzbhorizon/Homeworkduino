@@ -1,7 +1,7 @@
 /**
  * 
  */
-package bzb.se.bridge.rpc;
+package bzb.se.bridge;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
@@ -15,9 +15,9 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.StringTokenizer;
 
-import bzb.se.bridge.rpc.Lease.Action;
+import bzb.se.bridge.Lease.Action;
 
-public class Link {
+public class Link implements Comparable {
 	private static final DateFormat format = new SimpleDateFormat(
 			"yyyy-MM-dd HH:mm:ss SSS");
 
@@ -86,6 +86,10 @@ public class Link {
 	public Link() {
 
 	}
+	
+	public int compareTo(Object o1) {
+        return this.macAddress.compareTo(((Link) o1).macAddress);
+    }
 
 	public int getByteCount() {
 		return byteCount;
