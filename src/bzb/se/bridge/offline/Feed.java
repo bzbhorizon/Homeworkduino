@@ -2,12 +2,13 @@
  * 
  */
 package bzb.se.bridge.offline;
-
+ 
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
@@ -25,7 +26,14 @@ public class Feed {
 	
 	Collection<Flow> flows = new ArrayList<Flow>();
 	Collection<Link> links = new ArrayList<Link>();
-	HashMap<String, Pair> devices = new HashMap<String, Pair>();
+	/**
+	 * @return the links
+	 */
+	public Collection<Link> getLinks() {
+		return links;
+	}
+
+	Map<String, Pair> devices = Collections.synchronizedMap(new HashMap<String, Pair>());
 	
 	/**
 	 * @return the devices
@@ -116,7 +124,12 @@ public class Feed {
 						e.printStackTrace();
 					}
 					
-					devices.put(link.getMacAddress(), new Pair(System.currentTimeMillis(), link));
+					Pair p = new Pair(System.currentTimeMillis(), link);
+					if (p.isOld()) {
+						devices.remove(link.getMacAddress());
+					} else {
+						devices.put(link.getMacAddress(), new Pair(System.currentTimeMillis(), link));
+					}
 					
 					b.updateDevices();
 					

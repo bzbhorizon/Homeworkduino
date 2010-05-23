@@ -17,4 +17,12 @@ public class Pair {
 		this.link = link;
 	}
 	
+	public boolean isOld() {
+		if (System.currentTimeMillis() - lastActivity > 30000) {
+			return true;
+		} else {
+			return false;
+		}
+	}
+	
 }

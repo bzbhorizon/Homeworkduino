@@ -16,7 +16,6 @@ import controlP5.Bang;
 import controlP5.ControlEvent;
 import controlP5.ControlGroup;
 import controlP5.ControlP5;
-import controlP5.Label;
 import controlP5.Slider;
 import controlP5.Textlabel;
 
@@ -29,6 +28,8 @@ import controlP5.Textlabel;
 public class Control extends PApplet {
 
 	static Bridge br;
+	static final String PROBE_MAC = "0021d8e06ca2";
+	static String currentDevice;
 	
 	public static void main(String args[]) {
 		br = new Bridge(Integer.parseInt(args[0]));
@@ -51,8 +52,8 @@ public class Control extends PApplet {
 		"shows something about a particular device on the network"
 	};
 	Textlabel roleLabel;
-	Label updateLabel;
 	Bang update;
+	int[] groupXPositions = new int[roles.length];
 	
 	static final String configFileURL = "res/config.xml";
 	static XMLInOut xmlIO;
@@ -60,7 +61,7 @@ public class Control extends PApplet {
 	
 	public void setup() {
 		size(screen.width, screen.height);
-		frameRate(10);
+		frameRate(25);
 
 		controlP5 = new ControlP5(this);
 		
@@ -68,7 +69,6 @@ public class Control extends PApplet {
 		loadConfig();
 		
 		update = controlP5.addBang("update", screen.width / 2 - 50, screen.height - 100, 100, 30);
-		updateLabel = update.captionLabel();
 		update.hide();
 		
 		Bang exit = controlP5.addBang("exit", screen.width - 130, 100, 30, 30);
@@ -80,20 +80,22 @@ public class Control extends PApplet {
 		roleLabel = controlP5.addTextlabel("role", getRoleText(), 100, 120);
 		
 		for (int i = 0; i < roles.length; i++) {
-			roleGroups[i] = controlP5.addGroup(roles[i], 100 + i * 200, 200);
+			groupXPositions[i] = 100 + i * (int)((double)(screen.width - 200) / 3.0);
+			roleGroups[i] = controlP5.addGroup(roles[i], groupXPositions[i], 200, (int)((double)(screen.width - 200) / 3.0 * 0.8));
 			roleGroups[i].setBarHeight(20);
 			
 			if (i == role) {
 				roleGroups[i].open();
+				roleGroups[i].setColorBackground(60);
+				roleGroups[i].setLabel(roles[i] + " (active)");
 				updateGroup();
-				roleGroups[i].setColorBackground(150);
-				roleGroups[i].setBackgroundHeight(50);
 			} else {
 				roleGroups[i].close();
-				roleGroups[i].setColorBackground(50);
-				roleGroups[i].setBackgroundHeight(50);
+				roleGroups[i].setColorBackground(30);
 			}
 			roleGroups[i].activateEvent(true);
+			
+			
 		}
 		
 		background(myColorBackground);
@@ -101,6 +103,9 @@ public class Control extends PApplet {
 	
 	static void updateConfigFile () {
 		configRoot.addAttribute("role", role);
+		if (currentDevice != null) {
+			configRoot.addAttribute("monitoring", currentDevice);
+		}
 		xmlIO.saveElement(configRoot, "../" + configFileURL);
 	}
 	
@@ -121,18 +126,30 @@ public class Control extends PApplet {
 	}
 	
 	public void update (int value) {
-		update.hide();
+		if (role == 0) {
+			currentDevice = PROBE_MAC;
+		} else if (role == 1) {
+			currentDevice = new String();
+		} else if (role == 2) {	
+			if (possCurrentDevice != null) {
+				currentDevice = possCurrentDevice;
+			}
+		}
 		updateConfigFile();
 		for (int i = 0; i < roleGroups.length; i++) {
 			if (i == role) {
-				roleGroups[i].setColorBackground(150);
-				roleGroups[i].setBackgroundHeight(50);
+				roleGroups[i].setColorBackground(60);
+				roleGroups[i].setLabel(roles[i] + " (active)");
 			} else {
-				roleGroups[i].setColorBackground(50);
-				roleGroups[i].setBackgroundHeight(50);
+				roleGroups[i].setColorBackground(30);
+				roleGroups[i].setLabel(roles[i]);
 			}
 		}
 		br.updateRole();
+		if (role == 2) {
+			br.updateLinks();
+			updateGroup();
+		}
 	}
 		
 	static String getRoleText () {
@@ -140,6 +157,7 @@ public class Control extends PApplet {
 	}
 	
 	Bang lastBang;
+	String possCurrentDevice;
 	
 	public void controlEvent(ControlEvent theEvent) {
 		if(theEvent.isGroup()) {
@@ -148,8 +166,7 @@ public class Control extends PApplet {
 					if (theEvent.group().name().equals(roleGroups[i].name())) {
 						role = i;
 						roleLabel.setValue(getRoleText());
-						updateLabel.set("Set probe to " + roles[role]);
-						update.show();
+						
 						updateGroup();
 					} else {
 						roleGroups[i].close();
@@ -165,12 +182,17 @@ public class Control extends PApplet {
 				}
 				lastBang = (Bang) theEvent.controller();
 				lastBang.setColorForeground(Color.RED.getRGB());
+				possCurrentDevice = theEvent.name().substring(1);
 			}
 		}
 	}
 	
 	public void draw() {
-		background(myColorBackground);
+		try {
+			background(myColorBackground);
+		} catch (Exception e) {
+			
+		}
 	}
 	
 	public void exit (int value) {
@@ -190,6 +212,7 @@ public class Control extends PApplet {
 	public void updateGroup() {
 		//new Thread(new Runnable() {
 			//public void run () {
+
 		new Thread(new Runnable() {
 			public void run () {
 				progressBar = controlP5.addSlider("progress",0,100,progress,screen.width / 2 - 100,screen.height / 2 - 10,200,10);
@@ -208,31 +231,72 @@ public class Control extends PApplet {
 
 		new Thread(new Runnable() {
 			public void run () {
+				int pos = 0;
+				update.hide();
+				
 				switch (role) {
-					case 0:
+					case 2:
 						Iterator<String> macs = br.feed.getDevices().keySet().iterator();
 						int num = br.feed.getDevices().size();
 						int i = 0;
 						while (macs.hasNext()) {
 							progress = (float) ((double)i / (double)num * 100);
 							
-							String mac = macs.next();
-							if (mac != null) {
-								controlP5.remove("m" + mac);
-								Link thisDevice = br.feed.getDevices().get(mac).link;
-								if (thisDevice != null) {
-									String bangText = mac + " " + thisDevice.getCorporation();
-									int brightness = (int) (0-thisDevice.getRssi()*255/120.0);
-									if (controlP5 != null) {
-										Bang b = controlP5.addBang("m" + mac, 0, 4 + i++ * 30, 40, 10);
-										if (b != null) {
-											b.setGroup(roleGroups[role]);
-											b.setColorActive(Color.WHITE.getRGB());
-											b.setColorForeground(new Color(brightness,brightness,brightness).getRGB());
-											b.setCaptionLabel(bangText);
+							try {
+								String mac = macs.next();
+								if (mac != null) {
+									controlP5.remove("m" + mac);
+									if (i < 12) {
+										Link thisDevice = br.feed.getDevices().get(mac).link;
+										if (thisDevice != null) {
+											String bangText = thisDevice.getCorporation();
+											if (mac.equals(currentDevice)) {
+												int signal = (int)(0 - thisDevice.getRssi() / Bridge.MAX_RSSI * 100);
+												bangText += " (" + signal + "%; monitoring)";
+											}
+											if (controlP5 != null) {
+												pos = 4 + i++ * 30;
+												Bang b = controlP5.addBang("m" + mac, 0, pos, 40, 10);
+												if (b != null) {
+													b.setGroup(roleGroups[role]);
+													b.setColorActive(Color.WHITE.getRGB());
+													if (mac.equals(currentDevice) ) {
+														b.setColorForeground(Color.RED.getRGB());
+														lastBang = b;
+													}
+													b.setCaptionLabel(bangText);
+												}
+											} else {
+												System.out.println("bleh");
+											}
+										} else {
+											System.out.println("bleh");
 										}
-									} else {
-										System.out.println("bleh");
+									}
+								} else {
+									System.out.println("bleh");
+								}
+							} catch (Exception e) {
+								System.out.println("bleh");
+								pos += 30;
+								break;
+							}
+						}
+						break;
+					case 1:
+						break;
+					case 0:
+							Link thisDevice = br.feed.getDevices().get(PROBE_MAC).link;
+							if (thisDevice != null) {
+								float signal = 0 - thisDevice.getRssi() / Bridge.MAX_RSSI * 100;
+								if (controlP5 != null) {
+									controlP5.remove("d" + PROBE_MAC);
+									Slider s = controlP5.addSlider("d" + PROBE_MAC,0,100,signal,0,4,(int)((double)(screen.width - 200) / 3.0 * 0.75),10);
+									if (s != null) {
+										s.setGroup(roleGroups[role]);
+										signal *= 255 / 100;
+										s.setColorForeground(new Color((int)signal,(int)signal,(int)signal).getRGB());
+										s.setCaptionLabel("%");
 									}
 								} else {
 									System.out.println("bleh");
@@ -240,17 +304,19 @@ public class Control extends PApplet {
 							} else {
 								System.out.println("bleh");
 							}
-						}
-						break;
-					case 1:
-						break;
-					case 2:
 						break;
 					default:
 						break;
 				}
 				progress = 100;
 				controlP5.remove("progress");
+				
+				roleGroups[role].setBackgroundHeight(pos + 40);
+				roleGroups[role].setBackgroundColor(15);
+				
+				update.setPosition(roleGroups[role].position().x(), roleGroups[role].position().y() + roleGroups[role].getBackgroundHeight() + 20);
+				update.captionLabel().set("Set probe to " + roles[role]);
+				update.show();
 			}
 		}).start();
 	}
