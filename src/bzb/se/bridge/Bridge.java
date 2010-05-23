@@ -32,6 +32,7 @@ import org.xml.sax.SAXException;
 
 import bzb.se.Utility;
 import bzb.se.bridge.offline.Feed;
+import bzb.se.ui.Control;
 
 public class Bridge implements Runnable, SerialPortEventListener {
 	static CommPortIdentifier portId;
@@ -44,7 +45,9 @@ public class Bridge implements Runnable, SerialPortEventListener {
 	
 	int role;
 	
-	public Bridge (int commPort) {
+	public Feed feed;
+	
+	public Bridge (int commPort) {		
 		/*Enumeration<CommPortIdentifier> portList = CommPortIdentifier.getPortIdentifiers();
 		while (portList.hasMoreElements()) {
 			portId = portList.nextElement();
@@ -59,7 +62,8 @@ public class Bridge implements Runnable, SerialPortEventListener {
 		
 		//sendWireless(110, 120);
 		
-		new Thread(new Feed()).start();
+		feed = new Feed(this);
+		feed.run();
 	}
 	
 	public static void main(String args[]) {
@@ -224,6 +228,18 @@ public class Bridge implements Runnable, SerialPortEventListener {
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
+	}
+	
+	public void updateFlows () {
+		System.out.println("flow update");
+	}
+	
+	public void updateLinks () {
+		System.out.println("link update");
+	}
+	
+	public void updateDevices () {
+		System.out.println("device update");
 	}
 
 }

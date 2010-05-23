@@ -1,2 +1,2 @@
-java -cp bin;lib/* bzb.se.ui.Basic 7
+java -cp bin;lib/* bzb.se.ui.Control 7
 pause

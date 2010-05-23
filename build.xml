@@ -10,6 +10,7 @@
 	<target name="init" description="Prepare the filesystem for compilation">
 		<tstamp />
 		<mkdir dir="${build}" />
+		<mkdir dir="${dist}" />
 	</target>
 
 	<target name="compile" depends="init" description="Compile the source">
@@ -30,6 +31,9 @@
 	</target>
 	
 	<target name="dist" depends="compile" description="Jarify the components">
+		<delete dir="${dist}" />
+		<mkdir dir="${dist}" />
+		
 		<unzip dest="${build}">
 			<fileset dir="${lib}">
 		        <include name="*.jar" />
@@ -41,6 +45,11 @@
 			excludes="bzb/arduino/**" />
 
 		<copy file="run_dist.bat" tofile="${dist}/run.bat" />
+		<copy todir="${dist}/res">
+			<fileset dir="${res}">
+				<include name="*.txt" />
+			</fileset>
+		</copy>
 		
 		<delete dir="${build}" excludes="bzb/**" />
 		

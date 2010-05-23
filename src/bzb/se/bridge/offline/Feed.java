@@ -10,7 +10,9 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.Map;
 
+import bzb.se.bridge.Bridge;
 import bzb.se.bridge.Flow;
 import bzb.se.bridge.Link;
 import bzb.se.bridge.Pair;
@@ -19,13 +21,24 @@ import bzb.se.bridge.Pair;
  * @author bzb
  * 
  */
-public class Feed implements Runnable {
+public class Feed {
 	
 	Collection<Flow> flows = new ArrayList<Flow>();
 	Collection<Link> links = new ArrayList<Link>();
 	HashMap<String, Pair> devices = new HashMap<String, Pair>();
 	
-	public Feed () {
+	/**
+	 * @return the devices
+	 */
+	public Map<String, Pair> getDevices() {
+		return devices;
+	}
+
+	Bridge b;
+	
+	public Feed (Bridge b) {
+		this.b = b;
+		
 		try {
 			BufferedReader input = new BufferedReader(new FileReader(
 					"res/flowdump.txt"));
@@ -57,7 +70,6 @@ public class Feed implements Runnable {
 		}
 	}
 	
-	@Override
 	public void run() {
 		new Thread(new Runnable() {
 			public void run () {
@@ -70,7 +82,9 @@ public class Feed implements Runnable {
 					}
 					
 					long delay = flow.getTimeStamp().getTime() - lastTime;
-					System.out.println(flow.toString());
+
+					b.updateFlows();
+					
 					try {
 						Thread.sleep(delay);
 					} catch (InterruptedException e) {
@@ -93,7 +107,9 @@ public class Feed implements Runnable {
 					}
 					
 					long delay = link.getTimeStamp().getTime() - lastTime;
-					System.out.println(link.toJSON());
+					
+					b.updateLinks();
+					
 					try {
 						Thread.sleep(delay);
 					} catch (InterruptedException e) {
@@ -101,6 +117,8 @@ public class Feed implements Runnable {
 					}
 					
 					devices.put(link.getMacAddress(), new Pair(System.currentTimeMillis(), link));
+					
+					b.updateDevices();
 					
 					lastTime = link.getTimeStamp().getTime();
 				}
