@@ -28,7 +28,7 @@ import controlP5.Textlabel;
 public class Control extends PApplet {
 
 	static Bridge br;
-	static final String PROBE_MAC = "0021d8e06ca2";
+	static final String PROBE_MAC = "00:23:76:07:3b:ba";
 	static String currentDevice;
 	
 	public static void main(String args[]) {
@@ -208,11 +208,10 @@ public class Control extends PApplet {
 	boolean updating = false;
 	Slider progressBar;
 	float progress = 0;
+	Slider s;
+	Link probe;
 	
 	public void updateGroup() {
-		//new Thread(new Runnable() {
-			//public void run () {
-
 		new Thread(new Runnable() {
 			public void run () {
 				progressBar = controlP5.addSlider("progress",0,100,progress,screen.width / 2 - 100,screen.height / 2 - 10,200,10);
@@ -233,7 +232,7 @@ public class Control extends PApplet {
 			public void run () {
 				int pos = 0;
 				update.hide();
-				
+				updating = false;
 				switch (role) {
 					case 2:
 						Iterator<String> macs = br.feed.getDevices().keySet().iterator();
@@ -249,10 +248,9 @@ public class Control extends PApplet {
 									if (i < 12) {
 										Link thisDevice = br.feed.getDevices().get(mac).link;
 										if (thisDevice != null) {
-											String bangText = thisDevice.getCorporation();
+											String bangText = thisDevice.getCorporation() + " " + mac;
 											if (mac.equals(currentDevice)) {
-												int signal = (int)(0 - thisDevice.getRssi() / Bridge.MAX_RSSI * 100);
-												bangText += " (" + signal + "%; monitoring)";
+												bangText += " (monitoring)";
 											}
 											if (controlP5 != null) {
 												pos = 4 + i++ * 30;
@@ -286,21 +284,39 @@ public class Control extends PApplet {
 					case 1:
 						break;
 					case 0:
-							Link thisDevice = br.feed.getDevices().get(PROBE_MAC).link;
-							if (thisDevice != null) {
-								float signal = 0 - thisDevice.getRssi() / Bridge.MAX_RSSI * 100;
-								if (controlP5 != null) {
-									controlP5.remove("d" + PROBE_MAC);
-									Slider s = controlP5.addSlider("d" + PROBE_MAC,0,100,signal,0,4,(int)((double)(screen.width - 200) / 3.0 * 0.75),10);
-									if (s != null) {
-										s.setGroup(roleGroups[role]);
-										signal *= 255 / 100;
-										s.setColorForeground(new Color((int)signal,(int)signal,(int)signal).getRGB());
-										s.setCaptionLabel("%");
+							probe = br.feed.getDevices().get(PROBE_MAC).link;
+							controlP5.remove("d" + PROBE_MAC);
+							float signal = 0;
+							if (probe != null) {
+								signal -= probe.getRssi();
+							}
+							if (controlP5 != null) {
+								s = controlP5.addSlider("d" + PROBE_MAC,0,Bridge.MAX_RSSI,signal,0,4,(int)((double)(screen.width - 200) / 3.0 * 0.75),10);
+								if (s != null) {
+									s.setGroup(roleGroups[role]);
+									if (signal == 0) {
+										s.setCaptionLabel("No signal");
+									} else {
+										s.setCaptionLabel("-db");
 									}
-								} else {
-									System.out.println("bleh");
 								}
+								new Thread(new Runnable() {
+									public void run () {
+										updating = true;
+										while (updating) {
+											if (probe != null) {
+												s.setValue(0 - probe.getRssi());
+											} else {
+												probe = br.feed.getDevices().get(PROBE_MAC).link;
+											}
+											try {
+												Thread.sleep(5000);
+											} catch (InterruptedException e) {
+												e.printStackTrace();
+											}
+										}
+									}
+								}).start();
 							} else {
 								System.out.println("bleh");
 							}
