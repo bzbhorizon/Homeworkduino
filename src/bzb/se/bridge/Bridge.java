@@ -165,7 +165,7 @@ public class Bridge implements Runnable, SerialPortEventListener {
 		int greenLEDs = (int) (percentStr * TOTAL_LEDS);
 		if (greenLEDs != lastGreenLEDs) {
 			lastGreenLEDs = greenLEDs;
-			int redLEDs = TOTAL_LEDS - greenLEDs;
+			int redLEDs = 0;//TOTAL_LEDS - greenLEDs;
 
 			for (int i = 0; i < ROWS; i++) {
 				int greenThisRow = 0;
