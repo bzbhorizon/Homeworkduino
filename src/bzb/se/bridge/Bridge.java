@@ -32,7 +32,7 @@ import org.w3c.dom.Element;
 import org.xml.sax.SAXException;
 
 import bzb.se.Utility;
-import bzb.se.bridge.online.Feed;
+import bzb.se.bridge.offline.Feed;
 
 public class Bridge implements Runnable, SerialPortEventListener {
 	static CommPortIdentifier portId;
@@ -50,6 +50,8 @@ public class Bridge implements Runnable, SerialPortEventListener {
 
 	public Feed feed;
 
+	private Heartbeat heartbeat;
+
 	public Bridge(int commPort) {
 		Enumeration<CommPortIdentifier> portList = CommPortIdentifier
 				.getPortIdentifiers();
@@ -65,8 +67,11 @@ public class Bridge implements Runnable, SerialPortEventListener {
 		System.out.println("Search ended");
 
 		feed = new Feed(this);
-		new Thread(feed).start();
+		feed.run();
+		//new Thread(feed).start();
 
+		heartbeat = new Heartbeat((MAX_RSSI - MIN_RSSI) / 2 + MIN_RSSI);
+		new Thread(heartbeat).start();
 	}
 
 	public static void main(String args[]) {
@@ -100,7 +105,7 @@ public class Bridge implements Runnable, SerialPortEventListener {
 			outputStream = serialPort.getOutputStream();
 			serialPort.addEventListener(this);
 			serialPort.notifyOnDataAvailable(true);
-			serialPort.setSerialPortParams(9600, SerialPort.DATABITS_8,
+			serialPort.setSerialPortParams(115200, SerialPort.DATABITS_8,
 					SerialPort.STOPBITS_1, SerialPort.PARITY_NONE);
 
 			try {
@@ -137,15 +142,16 @@ public class Bridge implements Runnable, SerialPortEventListener {
 		if (outputStream != null) {
 			try {
 				outputStream.write(data);
-				System.out.print("written ");
+				/*System.out.print("written ");
 				for (int i = 0; i < data.length; i++) {
 					System.out.print(data[i] + " ");
 				}
-				System.out.println();
-				Thread.sleep(1500);
+				System.out.println();*/
+				Thread.sleep(500);
 			} catch (IOException e) {
 				e.printStackTrace();
 			} catch (InterruptedException e) {
+				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
 		}
@@ -192,7 +198,66 @@ public class Bridge implements Runnable, SerialPortEventListener {
 			System.out.println("No significant change to signal strength");
 		}
 	}
+	
+	class Heartbeat implements Runnable {
+		
+		private double strength;
+		private boolean running;
+		private boolean panicking;
+		
+		public Heartbeat (double strength) {
+			setRunning(true);
+			setPanicking(false);
+			setStrength(strength);
+		}
 
+		public void run() {
+			while (isRunning()) {
+				for (int i = 0; i < TOTAL_LEDS; i++) {
+					/*if (isPanicking()) {
+						sendStrength(0, 1);
+						sendStrength(1, 1);
+					} else {*/
+						sendStrength(i, TOTAL_LEDS);
+						System.out.println("thump");
+						try {
+							long delay = (long) (4000.0 * (getStrength() / (MAX_RSSI - MIN_RSSI)));
+							System.out.println("waiting " + delay);
+							Thread.sleep(delay);
+						} catch (InterruptedException e) {
+							e.printStackTrace();
+						}
+					//}
+				}
+			}
+		}
+
+		public void setStrength(double strength) {
+			this.strength = strength;
+		}
+
+		public double getStrength() {
+			return strength;
+		}
+
+		public void setRunning(boolean running) {
+			this.running = running;
+		}
+
+		public boolean isRunning() {
+			return running;
+		}
+
+		public void setPanicking(boolean panicking) {
+			this.panicking = panicking;
+		}
+
+		public boolean isPanicking() {
+			return panicking;
+		}
+		
+	}
+	
 	static double[] lastProportions;
 
 	public void sendProportions(double[] proportions) {
@@ -250,8 +315,8 @@ public class Bridge implements Runnable, SerialPortEventListener {
 			try {
 				byte[] readBuffer = new byte[inputStream.available()];
 				inputStream.read(readBuffer);
-				System.out.println("Received \""
-						+ new String(readBuffer).trim() + "\"");
+				/*System.out.println("Received \""
+						+ new String(readBuffer).trim() + "\"");*/
 			} catch (IOException e) {
 				System.out.println(e);
 			}
@@ -286,7 +351,7 @@ public class Bridge implements Runnable, SerialPortEventListener {
 	public void updateFlows() {
 		if (role == 1) {
 			if (System.currentTimeMillis() - lastUpdated > pollPeriod) {
-				sendProportions(new double[] { 10, 20, 15 });
+				//sendProportions(new double[] { 10, 20, 15 });
 				lastUpdated = System.currentTimeMillis();
 			}
 		}
@@ -300,7 +365,14 @@ public class Bridge implements Runnable, SerialPortEventListener {
 					Link link = links.next();
 					if (currentDevice != null
 							&& link.getMacAddress().equals(currentDevice)) {
-						sendStrength(0 - link.getRssi() - MIN_RSSI, MAX_RSSI);
+						//sendStrength(0 - link.getRssi() - MIN_RSSI, MAX_RSSI);
+						heartbeat.setStrength(0 - link.getRssi() - MIN_RSSI);
+						System.out.println("str " + heartbeat.getStrength());
+						if (heartbeat.getStrength() < (MAX_RSSI - MIN_RSSI) / 4) {
+							heartbeat.setPanicking(true);
+						} else if (heartbeat.isPanicking()) {
+							heartbeat.setPanicking(false);
+						}
 						break;
 					}
 				}

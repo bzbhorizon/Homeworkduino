@@ -58,7 +58,7 @@ public class Feed implements Runnable {
 		while (true) {
 			if (!rpc.isConnected()) {
 				try {
-					rpc.connect(InetAddress.getByName("192.168.0.1"),
+					rpc.connect(InetAddress.getByName("192.168.9.1"),
 							987);
 				} catch (Exception e) {
 					e.printStackTrace();
@@ -160,10 +160,10 @@ public class Feed implements Runnable {
 					e1.printStackTrace();
 				}
 
-				try {
+				/*try {
 					Thread.sleep(2000);
 				} catch (Exception e) {
-				}
+				}*/
 			}
 		}
 		

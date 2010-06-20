@@ -182,7 +182,7 @@ public class Control extends PApplet {
 				}
 				lastBang = (Bang) theEvent.controller();
 				lastBang.setColorForeground(Color.RED.getRGB());
-				possCurrentDevice = theEvent.name().substring(1);
+				possCurrentDevice = currentMACs[Integer.parseInt(theEvent.name().substring(1))];
 			}
 		}
 	}
@@ -211,6 +211,10 @@ public class Control extends PApplet {
 	Slider s;
 	Link probe;
 	
+	int numOfBangs = 12;
+	Bang[] deviceBangs = new Bang[numOfBangs];
+	String[] currentMACs = new String[numOfBangs];
+	
 	public void updateGroup() {
 		new Thread(new Runnable() {
 			public void run () {
@@ -235,49 +239,61 @@ public class Control extends PApplet {
 				updating = false;
 				switch (role) {
 					case 2:
-						Iterator<String> macs = br.feed.getDevices().keySet().iterator();
-						int num = br.feed.getDevices().size();
-						int i = 0;
-						while (macs.hasNext()) {
-							progress = (float) ((double)i / (double)num * 100);
+						synchronized (br.feed.getDevices()) {
+							Iterator<String> macs = br.feed.getDevices().keySet().iterator();
+							int num = br.feed.getDevices().size();
+							if (num > 12) {
+								num = 12;
+							}
 							
-							try {
-								String mac = macs.next();
-								if (mac != null) {
-									controlP5.remove("m" + mac);
-									if (i < 12) {
-										Link thisDevice = br.feed.getDevices().get(mac).link;
-										if (thisDevice != null) {
-											String bangText = thisDevice.getCorporation() + " " + mac;
-											if (mac.equals(currentDevice)) {
-												bangText += " (monitoring)";
-											}
-											if (controlP5 != null) {
-												pos = 4 + i++ * 30;
-												Bang b = controlP5.addBang("m" + mac, 0, pos, 40, 10);
-												if (b != null) {
-													b.setGroup(roleGroups[role]);
-													b.setColorActive(Color.WHITE.getRGB());
-													if (mac.equals(currentDevice) ) {
-														b.setColorForeground(Color.RED.getRGB());
-														lastBang = b;
+							int i = 0;
+							for (int j = 0; j < numOfBangs; j++) {
+								controlP5.remove("m" + j);
+								deviceBangs[j] = null;
+								currentMACs[j] = null;
+							}
+							while (macs.hasNext() && i < numOfBangs) {
+								progress = (float) ((double)i / (double)num * 100);
+								
+								try {
+									String mac = macs.next();
+									if (mac != null) {
+										if (i < numOfBangs) {
+											Link thisDevice = br.feed.getDevices().get(mac).link;
+											if (thisDevice != null) {
+												String bangText = thisDevice.getCorporation();
+												if (mac.equals(currentDevice)) {
+													bangText += " (monitoring)";
+												}
+												if (controlP5 != null) {
+													pos = 4 + i * 30;
+													deviceBangs[i] = controlP5.addBang("m" + i, 0, pos, 40, 10);
+													currentMACs[i] = mac;
+													if (deviceBangs[i] != null) {
+														deviceBangs[i].setGroup(roleGroups[role]);
+														deviceBangs[i].setColorActive(Color.WHITE.getRGB());
+														if (mac.equals(currentDevice) ) {
+															deviceBangs[i].setColorForeground(Color.RED.getRGB());
+															lastBang = deviceBangs[i];
+														}
+														deviceBangs[i].setCaptionLabel(bangText);
+														i++;
 													}
-													b.setCaptionLabel(bangText);
+												} else {
+													System.out.println("bleh");
 												}
 											} else {
 												System.out.println("bleh");
 											}
-										} else {
-											System.out.println("bleh");
 										}
+									} else {
+										System.out.println("bleh");
 									}
-								} else {
+								} catch (Exception e) {
 									System.out.println("bleh");
+									pos += 30;
+									break;
 								}
-							} catch (Exception e) {
-								System.out.println("bleh");
-								pos += 30;
-								break;
 							}
 						}
 						break;

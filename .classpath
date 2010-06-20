@@ -6,5 +6,7 @@
 	<classpathentry kind="lib" path="lib/core.jar"/>
 	<classpathentry kind="lib" path="lib/controlP5.jar"/>
 	<classpathentry kind="lib" path="lib/proxml.jar"/>
+	<classpathentry kind="lib" path="lib/xbee.jar"/>
+	<classpathentry kind="lib" path="lib/serial.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

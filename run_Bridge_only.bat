@@ -1,2 +1,2 @@
-java -cp bin;lib/* bzb.se.bridge.Bridge 6
+java -cp bin;lib/* bzb.se.bridge.Bridge 9
 pause

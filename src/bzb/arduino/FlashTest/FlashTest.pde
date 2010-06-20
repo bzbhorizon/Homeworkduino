@@ -18,7 +18,7 @@ void setup() {
 	open_line6;
 	open_line7;*/
 	
-	Serial.begin(9600);
+	Serial.begin(115200);
 }
 
 boolean failed = false;
