@@ -47,6 +47,7 @@ public class Bridge implements Runnable, SerialPortEventListener {
 
 	int role;
 	String currentDevice;
+	double signalStrength = (MAX_RSSI - MIN_RSSI) / 2 + MIN_RSSI;
 
 	public Feed feed;
 
@@ -69,9 +70,9 @@ public class Bridge implements Runnable, SerialPortEventListener {
 		feed = new Feed(this);
 		feed.run();
 		//new Thread(feed).start();
-
-		heartbeat = new Heartbeat((MAX_RSSI - MIN_RSSI) / 2 + MIN_RSSI);
-		new Thread(heartbeat).start();
+		
+		heartbeat = new Heartbeat();
+		startHeartbeat();
 	}
 
 	public static void main(String args[]) {
@@ -79,6 +80,8 @@ public class Bridge implements Runnable, SerialPortEventListener {
 	}
 
 	public void end() {
+		stopHeartbeat();
+		
 		if (outputStream != null) {
 			try {
 				outputStream.close();
@@ -166,12 +169,12 @@ public class Bridge implements Runnable, SerialPortEventListener {
 
 	public void sendStrength(double strength, double maxStrength) {
 		double percentStr = 1 - strength / maxStrength;
-		System.out.println(percentStr);
+		System.out.println(percentStr + " " + signalStrength);
 
 		int greenLEDs = (int) (percentStr * TOTAL_LEDS);
 		if (greenLEDs != lastGreenLEDs) {
 			lastGreenLEDs = greenLEDs;
-			int redLEDs = 0;//TOTAL_LEDS - greenLEDs;
+			int redLEDs = TOTAL_LEDS - greenLEDs;
 
 			for (int i = 0; i < ROWS; i++) {
 				int greenThisRow = 0;
@@ -199,45 +202,45 @@ public class Bridge implements Runnable, SerialPortEventListener {
 		}
 	}
 	
+	public void startHeartbeat () {
+		new Thread(heartbeat).start();
+	}
+	
+	public void stopHeartbeat () {
+		heartbeat.setRunning(false);
+	}
+	
 	class Heartbeat implements Runnable {
 		
-		private double strength;
 		private boolean running;
-		private boolean panicking;
 		
-		public Heartbeat (double strength) {
+		public Heartbeat () {
 			setRunning(true);
-			setPanicking(false);
-			setStrength(strength);
 		}
 
 		public void run() {
+			int i = 0;
 			while (isRunning()) {
-				for (int i = 0; i < TOTAL_LEDS; i++) {
-					/*if (isPanicking()) {
-						sendStrength(0, 1);
-						sendStrength(1, 1);
-					} else {*/
-						sendStrength(i, TOTAL_LEDS);
-						System.out.println("thump");
-						try {
-							long delay = (long) (4000.0 * (getStrength() / (MAX_RSSI - MIN_RSSI)));
-							System.out.println("waiting " + delay);
-							Thread.sleep(delay);
-						} catch (InterruptedException e) {
-							e.printStackTrace();
-						}
-					//}
+				// light leds
+				if (role == 0) {
+					
+				} else if (role == 1) {
+					
+				} else if (role == 2) {
+					
+				}
+				if (i > 20) {
+					i = 0;
+				}
+				sendStrength(i, 20);
+				i++;
+				try {
+					Thread.sleep(1000);
+				} catch (InterruptedException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
 				}
 			}
-		}
-
-		public void setStrength(double strength) {
-			this.strength = strength;
-		}
-
-		public double getStrength() {
-			return strength;
 		}
 
 		public void setRunning(boolean running) {
@@ -246,57 +249,7 @@ public class Bridge implements Runnable, SerialPortEventListener {
 
 		public boolean isRunning() {
 			return running;
-		}
-
-		public void setPanicking(boolean panicking) {
-			this.panicking = panicking;
-		}
-
-		public boolean isPanicking() {
-			return panicking;
-		}
-		
-	}
-	
-	static double[] lastProportions;
-
-	public void sendProportions(double[] proportions) {
-		boolean same = true;
-		if (lastProportions == null) {
-			same = false;
-		} else {
-			for (int i = 0; i < proportions.length; i++) {
-				if (proportions[i] != lastProportions[i]) {
-					same = false;
-					break;
-				}
-			}
-		}
-		if (!same) {
-			lastProportions = proportions;
-
-			/*
-			 * int greenLEDs = (int)(percentStr * TOTAL_LEDS); lastGreenLEDs =
-			 * greenLEDs; int redLEDs = TOTAL_LEDS - greenLEDs;
-			 * 
-			 * for (int i = 0; i < ROWS; i++) { int greenThisRow = 0; if
-			 * (greenLEDs > LEDS_PER_ROW) { greenThisRow = LEDS_PER_ROW; } else
-			 * { greenThisRow = greenLEDs; } greenLEDs -= greenThisRow; leds[i *
-			 * 3 + 1] = (byte) Utility.toBinary(greenThisRow);
-			 * 
-			 * int remainingThisRow = LEDS_PER_ROW - greenThisRow; int
-			 * redThisRow = 0; if (redLEDs > remainingThisRow) { redThisRow =
-			 * remainingThisRow; } else { redThisRow = redLEDs; } redLEDs -=
-			 * redThisRow; leds[i * 3] = (byte) Utility.toBinary(greenThisRow,
-			 * redThisRow); }
-			 */
-			for (int i = 0; i < leds.length; i++) {
-				leds[i] = 0;
-			}
-			send(leds);
-		} else {
-			System.out.println("No significant change to activity");
-		}
+		}		
 	}
 
 	public void serialEvent(SerialPortEvent event) {
@@ -351,28 +304,21 @@ public class Bridge implements Runnable, SerialPortEventListener {
 	public void updateFlows() {
 		if (role == 1) {
 			if (System.currentTimeMillis() - lastUpdated > pollPeriod) {
-				//sendProportions(new double[] { 10, 20, 15 });
+				// update bandwidth
 				lastUpdated = System.currentTimeMillis();
 			}
 		}
 	}
 
 	public void updateLinks() {
-		if (role == 0 || role == 2) {
+		if (role == 0) {
 			if (System.currentTimeMillis() - lastUpdated > pollPeriod) {
 				Iterator<Link> links = feed.getLinks().iterator();
 				while (links.hasNext()) {
 					Link link = links.next();
 					if (currentDevice != null
 							&& link.getMacAddress().equals(currentDevice)) {
-						//sendStrength(0 - link.getRssi() - MIN_RSSI, MAX_RSSI);
-						heartbeat.setStrength(0 - link.getRssi() - MIN_RSSI);
-						System.out.println("str " + heartbeat.getStrength());
-						if (heartbeat.getStrength() < (MAX_RSSI - MIN_RSSI) / 4) {
-							heartbeat.setPanicking(true);
-						} else if (heartbeat.isPanicking()) {
-							heartbeat.setPanicking(false);
-						}
+						signalStrength = ((0 - link.getRssi()) - MIN_RSSI) / MAX_RSSI; 
 						break;
 					}
 				}
@@ -382,7 +328,7 @@ public class Bridge implements Runnable, SerialPortEventListener {
 	}
 
 	public void updateDevices() {
-		// System.out.println("device update");
+		// 
 	}
 
 }
