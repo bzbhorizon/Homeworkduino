@@ -16,6 +16,8 @@ public class Choice extends PApplet {
 	static final int ROLE_SIGNAL = 0;
 	static final int ROLE_BANDWIDTH = 1;
 	static int role = ROLE_SIGNAL;
+	static final String PROBE_MAC = "00:23:76:07:3b:ba";
+	static String currentDevice;
 
 	public static void main(String args[]) {
 		br = new Bridge(Integer.parseInt(args[0]));
@@ -31,6 +33,7 @@ public class Choice extends PApplet {
 	public void setup() {
 		size(screen.width, screen.height);
 		background(color(0, 0, 0));
+		
 
 		xmlIO = new XMLInOut(this);
 		loadConfig();
@@ -47,20 +50,24 @@ public class Choice extends PApplet {
 				(screen.height - padding * 2) / 3 * 2, 20, 20);
 		roleButtons[1].setLabel("Bandwidth alarm");
 
-		roleButtons[2] = controlP5.addBang("chooseSomething", padding,
+		roleButtons[2] = controlP5.addBang("chooseExtraordinary", padding,
 				screen.height - padding * 2, 20, 20);
-		roleButtons[2].setLabel("Something else");
+		roleButtons[2].setLabel("Something extraordinary");
 	}
 
 	public void draw() {
 	}
 
 	static XMLInOut xmlIO;
-	static XMLElement configRoot;
+	//static XMLElement configRoot;
 	static final String configFileURL = "res/config.xml";
 
 	static void updateConfigFile() {
+		XMLElement configRoot = new XMLElement("config");
 		configRoot.addAttribute("role", role);
+		if (currentDevice != null) {
+			configRoot.addAttribute("monitoring", currentDevice);
+		}
 		xmlIO.saveElement(configRoot, "../" + configFileURL);
 		br.updateRole();
 	}
@@ -68,31 +75,37 @@ public class Choice extends PApplet {
 	static void loadConfig() {
 		File f = new File(configFileURL);
 		if (!f.exists()) {
-			configRoot = new XMLElement("config");
 			updateConfigFile();
+			xmlIO.loadElement(configFileURL);
 		}
-		xmlIO.loadElement(configFileURL);
 	}
 
 	public void xmlEvent(XMLElement element) {
 		if (element.getName().equals("config")) {
-			configRoot = element;
-			role = Integer.parseInt(configRoot.getAttribute("role"));
+			if (element.getAttribute("role") != null) {
+				role = Integer.parseInt(element.getAttribute("role"));
+			}
+			if (element.getAttribute("monitoring") != null) {
+				currentDevice = element.getAttribute("monitoring");
+			}
 		}
 	}
 
 	public void chooseSignal(int value) {
 		role = 0;
+		currentDevice = PROBE_MAC;
 		updateConfigFile();
 	}
 
 	public void chooseBandwidth(int value) {
 		role = 1;
+		currentDevice = null;
 		updateConfigFile();
 	}
 
-	public void chooseSomething(int value) {
+	public void chooseExtraordinary(int value) {
 		role = 2;
+		currentDevice = null;
 		updateConfigFile();
 	}
 }

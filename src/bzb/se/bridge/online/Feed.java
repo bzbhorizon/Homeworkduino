@@ -10,8 +10,10 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 import bzb.se.bridge.Bridge;
+import bzb.se.bridge.Flow;
 import bzb.se.bridge.JavaSRPC;
 import bzb.se.bridge.Lease;
 import bzb.se.bridge.Link;
@@ -25,9 +27,17 @@ import bzb.se.bridge.Lease.Action;
 public class Feed implements Runnable {
 	
 	JavaSRPC rpc = new JavaSRPC();
-	private static final long OLD = 12000; // 12 seconds
 	private static final int TIME_DELTA = 10;
 	private Date last = null;
+	
+	private final Map<String, CopyOnWriteArrayList<Flow>> flows = new HashMap<String, CopyOnWriteArrayList<Flow>>();
+	/**
+	 * @return the flows
+	 */
+	public Map<String, CopyOnWriteArrayList<Flow>> getFlows() {
+		return flows;
+	}
+	
 	private final Map<String, Link> links = new HashMap<String, Link>();
 	/**
 	 * @return the links
@@ -64,14 +74,14 @@ public class Feed implements Runnable {
 					e.printStackTrace();
 				}
 			}
-			
-			
-
+	
 			Date expected = new Date();
 			String linkQuery;
 			String leaseQuery;
+			String flowQuery;
 
 			while (rpc.isConnected()) {
+				System.out.println("tick");
 				
 				expected = new Date(expected.getTime() + TIME_DELTA);
 				if (last != null) {
@@ -85,6 +95,8 @@ public class Feed implements Runnable {
 							.format(
 									"SQL:select * from Leases where timestamp > %s",
 									TIME_DELTA + 1, s);
+					flowQuery = String.format("SQL:select * from Flows [ range %d seconds ] where timestamp > %s",
+									TIME_DELTA + 1, s);
 				} else {
 					linkQuery = String
 							.format(
@@ -92,6 +104,9 @@ public class Feed implements Runnable {
 									TIME_DELTA);
 					leaseQuery = String.format(
 							"SQL:select * from Leases", TIME_DELTA);
+					flowQuery = String.format(
+									"SQL:select * from Flows [ range %d seconds ]",
+									TIME_DELTA);
 				}
 
 				try {
@@ -125,6 +140,7 @@ public class Feed implements Runnable {
 							}
 						}
 					}
+					
 
 					String leaseResults = rpc.call(leaseQuery);
 					if (leaseResults != null) {
@@ -150,20 +166,39 @@ public class Feed implements Runnable {
 						}
 					}
 
+					String flowResults = rpc.call(flowQuery);
+					if (flowResults != null) {
+						Iterable<Flow> newFlows = Flow
+								.parseResultSet(flowResults);
+						synchronized (flows) {
+							for (Flow flow : newFlows) {
+								final CopyOnWriteArrayList<Flow> existingFlows = flows.get(flow.getSourceIP());
+								if (existingFlows != null) {
+									//update a flow
+									existingFlows.add(flow);
+								} else {
+									CopyOnWriteArrayList<Flow> newFlowsList = new CopyOnWriteArrayList<Flow>();
+									newFlowsList.add(flow);
+									flows.put(flow.getSourceIP(), newFlowsList);
+								}
+							}
+						}
+					}
+					
 					last = new Date();
 					
 					br.updateDevices();
 					br.updateLinks();
-					
+					br.updateFlows();
 				} catch (Exception e1) {
 					// logger.log(Level.SEVERE, e1.getMessage(), e1);
 					e1.printStackTrace();
 				}
 
-				/*try {
+				try {
 					Thread.sleep(2000);
 				} catch (Exception e) {
-				}*/
+				}
 			}
 		}
 		

@@ -19,9 +19,14 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.Collection;
 import java.util.Enumeration;
 import java.util.Iterator;
+import java.util.Map;
+import java.util.Set;
 import java.util.TooManyListenersException;
+import java.util.Map.Entry;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
@@ -32,7 +37,7 @@ import org.w3c.dom.Element;
 import org.xml.sax.SAXException;
 
 import bzb.se.Utility;
-import bzb.se.bridge.offline.Feed;
+import bzb.se.bridge.online.Feed;
 
 public class Bridge implements Runnable, SerialPortEventListener {
 	static CommPortIdentifier portId;
@@ -44,10 +49,14 @@ public class Bridge implements Runnable, SerialPortEventListener {
 	static final String configFileURL = "res/config.xml";
 	public static final float MIN_RSSI = 20;
 	public static final float MAX_RSSI = 100;
+	static final int MINS_INACTIVITY = 5;
 
 	int role;
 	String currentDevice;
-	double signalStrength = (MAX_RSSI - MIN_RSSI) / 2 + MIN_RSSI;
+	double signalStrength = ((MAX_RSSI - MIN_RSSI) / 2 + MIN_RSSI) / 100;
+	double recentUsageBps = 0.0;
+	double maxUsageBps = 0.0;
+	long maxUsageAt = 0;
 
 	public Feed feed;
 
@@ -68,11 +77,8 @@ public class Bridge implements Runnable, SerialPortEventListener {
 		System.out.println("Search ended");
 
 		feed = new Feed(this);
-		feed.run();
-		//new Thread(feed).start();
-		
-		heartbeat = new Heartbeat();
-		startHeartbeat();
+		//feed.run();
+		new Thread(feed).start();
 	}
 
 	public static void main(String args[]) {
@@ -129,85 +135,194 @@ public class Bridge implements Runnable, SerialPortEventListener {
 		}
 	}
 
-	public void testPattern() {
-		new Thread(new Runnable() {
-			public void run() {
-				byte[] testData = new byte[256];
-				for (int i = 0; i < 256; i++) {
-					testData[i] = (byte) i;
-				}
-				send(testData);
-			}
-		}).start();
-	}
-
 	public void send(byte[] data) {
 		if (outputStream != null) {
 			try {
 				outputStream.write(data);
-				/*System.out.print("written ");
-				for (int i = 0; i < data.length; i++) {
-					System.out.print(data[i] + " ");
-				}
-				System.out.println();*/
 				Thread.sleep(500);
 			} catch (IOException e) {
 				e.printStackTrace();
 			} catch (InterruptedException e) {
-				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
 		}
 	}
+	
+	static final int[] ledPositions = new int[]{
+		1,9,17,2,10,18,3,11,19,4,12,20,5,13,6,14,7,15,8,16
+	};
 
 	public static final int LEDS_PER_ROW = 8;
 	public static final int TOTAL_LEDS = 20;
 	public static final int ROWS = (int) Math.ceil((double) TOTAL_LEDS
 			/ (double) LEDS_PER_ROW);
-	public static byte[] leds = new byte[ROWS * 3];
-	static int lastGreenLEDs = 0;
+	public static byte[] LEDsinBinary = new byte[ROWS * 3];
+	static int lastLEDs = 0;
 
-	public void sendStrength(double strength, double maxStrength) {
-		double percentStr = 1 - strength / maxStrength;
-		System.out.println(percentStr + " " + signalStrength);
+	public void lightProportionSpread(double percentage, int rgb, int remainderRgb) {
+		System.out.println(percentage);
 
-		int greenLEDs = (int) (percentStr * TOTAL_LEDS);
-		if (greenLEDs != lastGreenLEDs) {
-			lastGreenLEDs = greenLEDs;
-			int redLEDs = TOTAL_LEDS - greenLEDs;
-
+		int LEDs = (int) (percentage * TOTAL_LEDS);
+		int remainderLEDs = TOTAL_LEDS - LEDs;
+		if (LEDs != lastLEDs) {
+			lastLEDs = LEDs;
+			LEDsinBinary = new byte[ROWS * 3];
 			for (int i = 0; i < ROWS; i++) {
-				int greenThisRow = 0;
-				if (greenLEDs > LEDS_PER_ROW) {
-					greenThisRow = LEDS_PER_ROW;
+				int litThisRow = 0;
+				if (LEDs > LEDS_PER_ROW) {
+					litThisRow = LEDS_PER_ROW;
 				} else {
-					greenThisRow = greenLEDs;
+					litThisRow = LEDs;
 				}
-				greenLEDs -= greenThisRow;
-				leds[i * 3 + 1] = (byte) Utility.toBinary(greenThisRow);
+				LEDs -= litThisRow;
+				LEDsinBinary[i * 3 + rgb] = (byte) Utility.toBinary(litThisRow);
 
-				int remainingThisRow = LEDS_PER_ROW - greenThisRow;
-				int redThisRow = 0;
-				if (redLEDs > remainingThisRow) {
-					redThisRow = remainingThisRow;
-				} else {
-					redThisRow = redLEDs;
+				if (remainderRgb >= 0 && remainderRgb < 3) {
+					int remainingThisRow = LEDS_PER_ROW - litThisRow;
+					int remainderThisRow = 0;
+					if (remainderLEDs > remainingThisRow) {
+						remainderThisRow = remainingThisRow;
+					} else {
+						remainderThisRow = remainderLEDs;
+					}
+					remainderLEDs -= remainderThisRow;
+					LEDsinBinary[i * 3 + remainderRgb] = (byte) Utility.toBinary(litThisRow, remainderThisRow);
 				}
-				redLEDs -= redThisRow;
-				leds[i * 3] = (byte) Utility.toBinary(greenThisRow, redThisRow);
 			}
-			send(leds);
+			send(LEDsinBinary);
 		} else {
-			System.out.println("No significant change to signal strength");
+			System.out.println("No change to proportion lit");
 		}
 	}
 	
+	public void lightProportionSequential(double percentage, int rgb, int remainderRgb) {
+		System.out.println(percentage);
+
+		int LEDs = (int) (percentage * TOTAL_LEDS);
+		if (LEDs != lastLEDs) {
+			lastLEDs = LEDs;
+			LEDsinBinary = new byte[ROWS * 3];
+			for (int i = 0; i < TOTAL_LEDS; i++) {
+				if (i < LEDs) {
+					for (int j = 0; j < crap[i].length; j++) {
+						LEDsinBinary[j * 3 + rgb] += crap[i][j];
+					}
+				} else if (remainderRgb >= 0 && remainderRgb < 3) {
+					for (int j = 0; j < crap[i].length; j++) {
+						LEDsinBinary[j * 3 + remainderRgb] += crap[i][j];
+					}
+				}
+			}
+			send(LEDsinBinary);
+		} else {
+			System.out.println("No change to proportion lit");
+		}
+	}
+	
+	public void lightsOff () {
+		send(new byte[ROWS * 3]);
+	}
+	
+	public void lightProportionSequential(double r, double g, double b) {
+		double total = r + g + b;
+
+		int rLEDs = (int) (r / total * TOTAL_LEDS);
+		int gLEDs = (int) (g / total * TOTAL_LEDS);
+		
+		if (rLEDs != lastLEDs) {
+			lastLEDs = rLEDs;
+			LEDsinBinary = new byte[ROWS * 3];
+			for (int i = 0; i < TOTAL_LEDS; i++) {
+				if (i < rLEDs) {
+					for (int j = 0; j < crap[i].length; j++) {
+						LEDsinBinary[j * 3] += crap[i][j];
+					}
+				} else if (i < rLEDs + gLEDs) {
+					for (int j = 0; j < crap[i].length; j++) {
+						LEDsinBinary[j * 3 + 1] += crap[i][j];
+					}
+				} else {
+					for (int j = 0; j < crap[i].length; j++) {
+						LEDsinBinary[j * 3 + 2] += crap[i][j];
+					}
+				}
+			}
+			send(LEDsinBinary);
+		} else {
+			System.out.println("No change to proportion lit");
+		}
+	}
+
+	public void lightWarning () {
+		lightProportionSpread(1, 0, -1);
+	}
+	
+	byte[][] crap = new byte[][]{
+		new byte[]{1,0,0},
+		new byte[]{0,1,0},
+		new byte[]{0,0,1},
+		new byte[]{2,0,0},
+		new byte[]{0,2,0},
+		new byte[]{0,0,2},
+		new byte[]{4,0,0},
+		new byte[]{0,4,0},
+		new byte[]{0,0,4},
+		new byte[]{8,0,0},
+		new byte[]{0,8,0},
+		new byte[]{0,0,8},
+		new byte[]{16,0,0},
+		new byte[]{0,16,0},
+		//new byte[]{0,0,16},
+		new byte[]{32,0,0},
+		new byte[]{0,32,0},
+		//new byte[]{0,0,32},
+		new byte[]{64,0,0},
+		new byte[]{0,64,0},
+		new byte[]{(byte)128,0,0},
+		new byte[]{0,(byte)128,0}
+	};
+	
+	public void lightIndividual (int number, int rgb) {
+		System.out.print(number + " -> ");
+		LEDsinBinary = new byte[ROWS * 3];
+		for (int i = 0; i < 9; i++) {
+			if (i%3 == rgb) {
+				LEDsinBinary[i] = crap[number][i/3];
+			} else {
+				LEDsinBinary[i] = (byte)0;
+			}
+			System.out.print(LEDsinBinary[i] + " ");
+		}
+		System.out.println();
+		send(LEDsinBinary);
+	}
+	
+	public void lightPair (int number, int rgb) {
+		int number2 = (number + TOTAL_LEDS / 2)%TOTAL_LEDS;
+		LEDsinBinary = new byte[ROWS * 3];
+		for (int i = 0; i < 9; i++) {
+			if (i%3 == rgb) {
+				LEDsinBinary[i] = crap[number][i/3];
+				LEDsinBinary[i] += crap[number2][i/3];
+			} else {
+				LEDsinBinary[i] = (byte)0;
+			}
+		}
+		send(LEDsinBinary);
+	}
+	
 	public void startHeartbeat () {
+		if (heartbeat == null) {
+			heartbeat = new Heartbeat();
+		}
+		heartbeat.setRunning(true);
 		new Thread(heartbeat).start();
 	}
 	
 	public void stopHeartbeat () {
-		heartbeat.setRunning(false);
+		if (heartbeat != null) {
+			heartbeat.setRunning(false);
+		}
 	}
 	
 	class Heartbeat implements Runnable {
@@ -221,23 +336,22 @@ public class Bridge implements Runnable, SerialPortEventListener {
 		public void run() {
 			int i = 0;
 			while (isRunning()) {
-				// light leds
-				if (role == 0) {
-					
-				} else if (role == 1) {
-					
-				} else if (role == 2) {
-					
-				}
-				if (i > 20) {
+				if (i > TOTAL_LEDS - 1) {
 					i = 0;
 				}
-				sendStrength(i, 20);
+				double usage = recentUsageBps / maxUsageBps;
+				System.out.println(usage);
+				if (usage > 0.8) {
+					lightPair(i, 0);
+				} else if (usage > 0.5) {
+					lightPair(i, 1);
+				} else {
+					lightPair(i, 2);
+				}
 				i++;
 				try {
-					Thread.sleep(1000);
+					Thread.sleep((long) (1000 + (1 - usage) * 15000));
 				} catch (InterruptedException e) {
-					// TODO Auto-generated catch block
 					e.printStackTrace();
 				}
 			}
@@ -249,7 +363,7 @@ public class Bridge implements Runnable, SerialPortEventListener {
 
 		public boolean isRunning() {
 			return running;
-		}		
+		}
 	}
 
 	public void serialEvent(SerialPortEvent event) {
@@ -268,8 +382,6 @@ public class Bridge implements Runnable, SerialPortEventListener {
 			try {
 				byte[] readBuffer = new byte[inputStream.available()];
 				inputStream.read(readBuffer);
-				/*System.out.println("Received \""
-						+ new String(readBuffer).trim() + "\"");*/
 			} catch (IOException e) {
 				System.out.println(e);
 			}
@@ -287,8 +399,19 @@ public class Bridge implements Runnable, SerialPortEventListener {
 			doc.getDocumentElement().normalize();
 			Element config = (Element) doc.getElementsByTagName("config").item(
 					0);
-			role = Integer.parseInt(config.getAttribute("role"));
-			currentDevice = config.getAttribute("monitoring");
+			if (config.getAttribute("role") != null) {
+				role = Integer.parseInt(config.getAttribute("role"));
+			}
+			if (config.getAttribute("monitoring") != null) {
+				currentDevice = config.getAttribute("monitoring");
+			}
+			if (role == 1) {
+				startHeartbeat();
+			} else {
+				stopHeartbeat();
+			}
+			LEDsinBinary = new byte[ROWS * 3];
+			lastLEDs = 0;
 		} catch (ParserConfigurationException e) {
 			e.printStackTrace();
 		} catch (SAXException e) {
@@ -298,37 +421,127 @@ public class Bridge implements Runnable, SerialPortEventListener {
 		}
 	}
 
-	long lastUpdated = 0;
-	int pollPeriod = 1000;
+	private long lastUpdated = 0;
+	private static final int FLOW_POLL_PERIOD = 1000;
 
+	boolean flowsUpdating = false;
+	
 	public void updateFlows() {
-		if (role == 1) {
-			if (System.currentTimeMillis() - lastUpdated > pollPeriod) {
-				// update bandwidth
-				lastUpdated = System.currentTimeMillis();
-			}
+		if (role == 1 && System.currentTimeMillis() - lastUpdated > FLOW_POLL_PERIOD && !flowsUpdating) {
+			new Thread(new Runnable() {
+				public void run () {
+					flowsUpdating = true;
+					Collection<CopyOnWriteArrayList<Flow>> sources = feed.getFlows().values();
+					Iterator<CopyOnWriteArrayList<Flow>> flowsList = sources.iterator();
+					double totalBytes = 0.0;
+					while (flowsList.hasNext()) {
+						CopyOnWriteArrayList<Flow> flows = flowsList.next();
+						Iterator<Flow> flowIt = flows.iterator();
+						while (flowIt.hasNext()) {
+							Flow flow = flowIt.next();
+							if (System.currentTimeMillis() - flow.getTimeStamp().getTime() > 30000) {
+								flows.remove(flow);
+							} else {
+								if (flow.getTimeStamp().getTime() > lastUpdated) {
+									totalBytes += flow.getByteCount();
+								}
+							}
+						}
+					}
+					recentUsageBps = totalBytes / ((System.currentTimeMillis() - lastUpdated) / 1000.0);
+
+					if (recentUsageBps > maxUsageBps) {
+						maxUsageBps = recentUsageBps;
+						maxUsageAt = System.currentTimeMillis();
+						System.out.println("Raising maximum bandwidth used to " + maxUsageBps / 1000 + "kbps");
+					}
+					
+					// drop max usage threshold after 5 minutes of lower activity
+					if (System.currentTimeMillis() - maxUsageAt > 1000*60*MINS_INACTIVITY) {
+						maxUsageAt -= 1000*60*MINS_INACTIVITY;
+						maxUsageBps *= 0.75;
+						System.out.println("Decaying maximum bandwidth used to " + maxUsageBps / 1000 + "kbps");
+					}
+					
+					lastUpdated = System.currentTimeMillis();
+					flowsUpdating = false;
+				}
+			}).start();
 		}
 	}
+	
+	private static final int LINK_POLL_PERIOD = 500;
 
 	public void updateLinks() {
-		if (role == 0) {
-			if (System.currentTimeMillis() - lastUpdated > pollPeriod) {
-				Iterator<Link> links = feed.getLinks().iterator();
-				while (links.hasNext()) {
-					Link link = links.next();
-					if (currentDevice != null
-							&& link.getMacAddress().equals(currentDevice)) {
-						signalStrength = ((0 - link.getRssi()) - MIN_RSSI) / MAX_RSSI; 
-						break;
+		if (role == 0 && System.currentTimeMillis() - lastUpdated > LINK_POLL_PERIOD) {
+			boolean foundProbe = false;
+			Iterator<Link> links = feed.getLinks().iterator();
+			while (links.hasNext()) {
+				Link link = links.next();
+				if (currentDevice != null
+						&& link.getMacAddress().equals(currentDevice)) {
+					signalStrength = 1 - ((0 - link.getRssi()) - MIN_RSSI) / MAX_RSSI;
+					if (role == 0) {
+						if (signalStrength > 0.5) {
+							lightProportionSequential(signalStrength, 1, -1);
+						} else {
+							lightProportionSequential(signalStrength, 0, -1);
+						}
+						foundProbe = true;
 					}
+					break;
 				}
-				lastUpdated = System.currentTimeMillis();
 			}
+			if (!foundProbe) {
+				lightWarning();
+			}
+			lastUpdated = System.currentTimeMillis();
 		}
 	}
 
+	private static int lastDevicesVisible = 0;
+	private static int lastLeases = 0;
+	private static final int DEVICE_POLL_PERIOD = 5000;
+	private static final int SIGNIFICANT_RETRIES = 5;
+	
 	public void updateDevices() {
-		// 
+		if (role == 2 && System.currentTimeMillis() - lastUpdated > DEVICE_POLL_PERIOD) {
+			
+			double r = 0;
+			double g = 0;
+			double b = 0;
+			
+			Map<String, Pair> ids = feed.getDevices();
+
+			if (lastDevicesVisible < ids.size()) {
+				b = 1;
+			}
+			lastDevicesVisible = ids.size();
+			Iterator<Pair> pairs = ids.values().iterator();
+
+			int leases = 0;
+			while (pairs.hasNext()) {
+				Pair pair = pairs.next();
+				if (pair.getLink().getIpAddress() != null) {
+					leases++;
+				}
+				if (pair.getLink().getRetryCount() > SIGNIFICANT_RETRIES) {
+					r = 1;
+				}
+			}
+			
+			if (lastLeases < leases) {
+				g = 1;
+			}
+			lastLeases = leases;
+			if (r == 0 && g == 0 && b == 0) {
+				lightsOff();
+			} else {
+				lightProportionSequential(r, g, b);
+			}
+			
+			lastUpdated = System.currentTimeMillis();
+		}
 	}
 
 }

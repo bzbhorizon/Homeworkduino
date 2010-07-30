@@ -259,7 +259,7 @@ public class Control extends PApplet {
 									String mac = macs.next();
 									if (mac != null) {
 										if (i < numOfBangs) {
-											Link thisDevice = br.feed.getDevices().get(mac).link;
+											Link thisDevice = br.feed.getDevices().get(mac).getLink();
 											if (thisDevice != null) {
 												String bangText = thisDevice.getCorporation();
 												if (mac.equals(currentDevice)) {
@@ -300,7 +300,7 @@ public class Control extends PApplet {
 					case 1:
 						break;
 					case 0:
-							probe = br.feed.getDevices().get(PROBE_MAC).link;
+							probe = br.feed.getDevices().get(PROBE_MAC).getLink();
 							controlP5.remove("d" + PROBE_MAC);
 							float signal = 0;
 							if (probe != null) {
@@ -323,7 +323,7 @@ public class Control extends PApplet {
 											if (probe != null) {
 												s.setValue(0 - probe.getRssi());
 											} else {
-												probe = br.feed.getDevices().get(PROBE_MAC).link;
+												probe = br.feed.getDevices().get(PROBE_MAC).getLink();
 											}
 											try {
 												Thread.sleep(5000);

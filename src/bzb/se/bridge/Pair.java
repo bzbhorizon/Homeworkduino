@@ -10,11 +10,11 @@ package bzb.se.bridge;
 public class Pair {
 
 	public Long lastActivity;
-	public Link link;
+	private Link link;
 	
 	public Pair (Long lastActivity, Link link) {
 		this.lastActivity = lastActivity;
-		this.link = link;
+		this.setLink(link);
 	}
 	
 	public boolean isOld() {
@@ -23,6 +23,14 @@ public class Pair {
 		} else {
 			return false;
 		}
+	}
+
+	public void setLink(Link link) {
+		this.link = link;
+	}
+
+	public Link getLink() {
+		return link;
 	}
 	
 }

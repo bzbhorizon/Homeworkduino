@@ -81,6 +81,20 @@ public class Link implements Comparable {
 	private int byteCount;
 	private String networkName;
 	private String ipAddress;
+	/**
+	 * @return the ipAddress
+	 */
+	public String getIpAddress() {
+		return ipAddress;
+	}
+
+	/**
+	 * @param ipAddress the ipAddress to set
+	 */
+	public void setIpAddress(String ipAddress) {
+		this.ipAddress = ipAddress;
+	}
+
 	private String userName;
 
 	public Link() {
