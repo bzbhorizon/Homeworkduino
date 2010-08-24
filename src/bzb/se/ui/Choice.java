@@ -69,7 +69,7 @@ public class Choice extends PApplet {
 			configRoot.addAttribute("monitoring", currentDevice);
 		}
 		xmlIO.saveElement(configRoot, "../" + configFileURL);
-		br.updateRole();
+		br.updateRole(role);
 	}
 
 	static void loadConfig() {

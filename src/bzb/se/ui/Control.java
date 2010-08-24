@@ -145,7 +145,7 @@ public class Control extends PApplet {
 				roleGroups[i].setLabel(roles[i]);
 			}
 		}
-		br.updateRole();
+		br.updateRole(role);
 		if (role == 2) {
 			br.updateLinks();
 			updateGroup();

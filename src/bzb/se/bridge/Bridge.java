@@ -44,13 +44,12 @@ public class Bridge implements Runnable, SerialPortEventListener {
 	OutputStream outputStream;
 	SerialPort serialPort;
 
-	static final String configFileURL = "res/config.xml";
 	public static final float MIN_RSSI = 20;
 	public static final float MAX_RSSI = 100;
 	static final int MINS_INACTIVITY = 5;
 
 	int role;
-	String currentDevice;
+	public String currentDevice;
 	double signalStrength = ((MAX_RSSI - MIN_RSSI) / 2 + MIN_RSSI) / 100;
 	double recentUsageBps = 0.0;
 	double maxUsageBps = 0.0;
@@ -122,7 +121,7 @@ public class Bridge implements Runnable, SerialPortEventListener {
 				e.printStackTrace();
 			}
 
-			updateRole();
+			updateRole(1);
 		} catch (UnsupportedCommOperationException e) {
 			System.out.println(e);
 		} catch (PortInUseException e) {
@@ -393,36 +392,15 @@ public class Bridge implements Runnable, SerialPortEventListener {
 		}
 	}
 
-	public void updateRole() {
-		DocumentBuilderFactory docBuilderFactory = DocumentBuilderFactory
-				.newInstance();
-		DocumentBuilder docBuilder;
-		try {
-			docBuilder = docBuilderFactory.newDocumentBuilder();
-			Document doc = docBuilder.parse(new File(configFileURL));
-			doc.getDocumentElement().normalize();
-			Element config = (Element) doc.getElementsByTagName("config").item(
-					0);
-			if (config.getAttribute("role") != null) {
-				role = Integer.parseInt(config.getAttribute("role"));
-			}
-			if (config.getAttribute("monitoring") != null) {
-				currentDevice = config.getAttribute("monitoring");
-			}
-			if (role == 1) {
-				startHeartbeat();
-			} else {
-				stopHeartbeat();
-			}
-			LEDsinBinary = new byte[ROWS * 3];
-			lastLEDs = 0;
-		} catch (ParserConfigurationException e) {
-			e.printStackTrace();
-		} catch (SAXException e) {
-			e.printStackTrace();
-		} catch (IOException e) {
-			e.printStackTrace();
+	public void updateRole(int role) {
+		this.role = role;
+		if (this.role == 1) {
+			startHeartbeat();
+		} else {
+			stopHeartbeat();
 		}
+		LEDsinBinary = new byte[ROWS * 3];
+		lastLEDs = 0;
 	}
 
 	private long lastUpdated = 0;

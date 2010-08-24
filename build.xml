@@ -45,6 +45,7 @@
 			excludes="bzb/arduino/**" />
 
 		<copy file="run_dist.bat" tofile="${dist}/run.bat" />
+		<copy file="run_dist.sh" tofile="${dist}/run.sh" />
 		<copy todir="${dist}/res">
 			<fileset dir="${res}">
 				<include name="*.txt" />

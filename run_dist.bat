@@ -1,2 +1,2 @@
-java -cp homeworkduino.jar -Djava.library.path=. bzb.se.ui.Command /dev/ttyUSB0 1
+java -cp homeworkduino.jar -Djava.library.path=. bzb.se.ui.Command COM7 1
 pause

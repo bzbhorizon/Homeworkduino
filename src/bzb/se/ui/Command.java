@@ -1,12 +1,23 @@
 package bzb.se.ui;
 
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.awt.event.KeyEvent;
 import java.io.File;
 
-import proxml.XMLElement;
-import proxml.XMLInOut;
+import javax.swing.AbstractButton;
+import javax.swing.JButton;
+import javax.swing.JFrame;
+import javax.swing.JPanel;
+
 import bzb.se.bridge.Bridge;
 
-public class Command {
+import processing.core.PApplet;
+import proxml.XMLElement;
+import proxml.XMLInOut;
+
+@SuppressWarnings("serial")
+public class Command extends JPanel implements ActionListener {
 
 	static Bridge br;
 	static final int ROLE_SIGNAL = 0;
@@ -18,56 +29,72 @@ public class Command {
 	public static void main(String args[]) {
 		br = new Bridge(args[0]);
 		role = Integer.parseInt(args[1]);
+		
+		javax.swing.SwingUtilities.invokeLater(new Runnable() {
+            public void run() {
+                JFrame frame = new JFrame("Homeworkduino control");
+                frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+                Command newContentPane = new Command();
+                newContentPane.setOpaque(true); //content panes must be opaque
+                frame.setContentPane(newContentPane);
+                frame.pack();
+                frame.setVisible(true);
+            }
+        });
+	}
+	
+	public Command () {		
+		JButton b1 = new JButton("Signal strength monitor");
+        b1.setVerticalTextPosition(AbstractButton.CENTER);
+        b1.setHorizontalTextPosition(AbstractButton.LEADING); //aka LEFT, for left-to-right locales
+        b1.setMnemonic(KeyEvent.VK_S);
+        b1.setActionCommand("chooseSignal");
+
+        JButton b2 = new JButton("Bandwidth monitor");
+        b2.setVerticalTextPosition(AbstractButton.CENTER);
+        b2.setHorizontalTextPosition(AbstractButton.CENTER);
+        b2.setMnemonic(KeyEvent.VK_B);
+        b2.setActionCommand("chooseBandwidth");
+
+        JButton b3 = new JButton("Network event monitor");
+        b3.setMnemonic(KeyEvent.VK_E);
+        b3.setActionCommand("chooseExtraordinary");
+
+        b1.addActionListener(this);
+        b2.addActionListener(this);
+        b3.addActionListener(this);
+
+        b1.setToolTipText("Click this button to monitor the strength of the connection between the probe and the network");
+        b2.setToolTipText("Click this button to monitor the amount of traffic on the network");
+        b3.setToolTipText("Click this button to monitor important events occurring on the network");
+
+        //Add Components to this container, using the default FlowLayout.
+        add(b1);
+        add(b2);
+        add(b3);
 	}
 
-	static XMLInOut xmlIO;
-	//static XMLElement configRoot;
-	static final String configFileURL = "res/config.xml";
-
-	static void updateConfigFile() {
-		XMLElement configRoot = new XMLElement("config");
-		configRoot.addAttribute("role", role);
+	static void updateConfig() {
 		if (currentDevice != null) {
-			configRoot.addAttribute("monitoring", currentDevice);
+			br.currentDevice = currentDevice;
 		}
-		xmlIO.saveElement(configRoot, "../" + configFileURL);
-		br.updateRole();
+		br.updateRole(role);
 	}
 
-	static void loadConfig() {
-		File f = new File(configFileURL);
-		if (!f.exists()) {
-			updateConfigFile();
-			xmlIO.loadElement(configFileURL);
+	@Override
+	public void actionPerformed(ActionEvent ae) {
+		if (ae.getActionCommand().equals("chooseSignal")) {
+			role = 0;
+			currentDevice = PROBE_MAC;
+			updateConfig();
+		} else if (ae.getActionCommand().equals("chooseBandwidth")) {
+			role = 1;
+			currentDevice = null;
+			updateConfig();
+		} else if (ae.getActionCommand().equals("chooseExtraordinary")) {
+			role = 2;
+			currentDevice = null;
+			updateConfig();
 		}
-	}
-
-	public void xmlEvent(XMLElement element) {
-		if (element.getName().equals("config")) {
-			if (element.getAttribute("role") != null) {
-				role = Integer.parseInt(element.getAttribute("role"));
-			}
-			if (element.getAttribute("monitoring") != null) {
-				currentDevice = element.getAttribute("monitoring");
-			}
-		}
-	}
-
-	public void chooseSignal(int value) {
-		role = 0;
-		currentDevice = PROBE_MAC;
-		updateConfigFile();
-	}
-
-	public void chooseBandwidth(int value) {
-		role = 1;
-		currentDevice = null;
-		updateConfigFile();
-	}
-
-	public void chooseExtraordinary(int value) {
-		role = 2;
-		currentDevice = null;
-		updateConfigFile();
 	}
 }
