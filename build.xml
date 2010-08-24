@@ -49,7 +49,7 @@
 		<copy todir="${dist}/res">
 			<fileset dir="${res}">
 				<include name="*.txt" />
-				<include name="config.xml" />
+				<include name="*.png" />
 			</fileset>
 		</copy>
 		

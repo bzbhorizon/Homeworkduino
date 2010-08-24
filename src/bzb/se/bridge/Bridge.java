@@ -341,18 +341,22 @@ public class Bridge implements Runnable, SerialPortEventListener {
 				System.out.println(usage);
 				if (usage > 0.9) {
 					lightPair(i, 0);
+					i++;
 				} else if (usage > 0.3) {
 					lightPair(i, 1);
+					i++;
+				} else if (usage > 0.05) {
+					lightPair(i, 2);
+					i++;
 				} else {
 					lightPair(i, 2);
 				}
-				i++;
 				try {
 					double delay = 1.0 - usage;
 					if (delay < 0) {
 						delay = 0;
 					}
-					delay = 1500 + delay * 15000;
+					delay = 1500 + delay * 10000;
 					Thread.sleep((long)delay);
 				} catch (InterruptedException e) {
 					e.printStackTrace();
@@ -507,7 +511,7 @@ public class Bridge implements Runnable, SerialPortEventListener {
 				if (pair.getLink().getIpAddress() != null) {
 					leases++;
 				}
-				if (pair.getLink().getRetryCount() > SIGNIFICANT_RETRIES) {
+				if (pair.getLink().getRetryCount() > ((double)pair.getLink().getPacketCount() * 0.25)) {
 					r = 1;
 				}
 			}
