@@ -23,9 +23,7 @@ import java.util.Collection;
 import java.util.Enumeration;
 import java.util.Iterator;
 import java.util.Map;
-import java.util.Set;
 import java.util.TooManyListenersException;
-import java.util.Map.Entry;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 import javax.xml.parsers.DocumentBuilder;
@@ -62,13 +60,14 @@ public class Bridge implements Runnable, SerialPortEventListener {
 
 	private Heartbeat heartbeat;
 
-	public Bridge(int commPort) {
+	public Bridge(String commPort) {
 		Enumeration<CommPortIdentifier> portList = CommPortIdentifier
 				.getPortIdentifiers();
 		while (portList.hasMoreElements()) {
 			portId = portList.nextElement();
 			if (portId.getPortType() == CommPortIdentifier.PORT_SERIAL) {
-				if (portId.getName().equals("COM" + commPort)) {
+				System.out.println(portId.getName());
+				if (portId.getName().equals(commPort)) {
 					new Thread(this).start();
 					break;
 				}
@@ -82,7 +81,7 @@ public class Bridge implements Runnable, SerialPortEventListener {
 	}
 
 	public static void main(String args[]) {
-		new Bridge(Integer.parseInt(args[0]));
+		new Bridge(args[0]);
 	}
 
 	public void end() {
@@ -341,16 +340,21 @@ public class Bridge implements Runnable, SerialPortEventListener {
 				}
 				double usage = recentUsageBps / maxUsageBps;
 				System.out.println(usage);
-				if (usage > 0.8) {
+				if (usage > 0.9) {
 					lightPair(i, 0);
-				} else if (usage > 0.5) {
+				} else if (usage > 0.3) {
 					lightPair(i, 1);
 				} else {
 					lightPair(i, 2);
 				}
 				i++;
 				try {
-					Thread.sleep((long) (1000 + (1 - usage) * 15000));
+					double delay = 1.0 - usage;
+					if (delay < 0) {
+						delay = 0;
+					}
+					delay = 1500 + delay * 15000;
+					Thread.sleep((long)delay);
 				} catch (InterruptedException e) {
 					e.printStackTrace();
 				}

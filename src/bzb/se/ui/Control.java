@@ -32,7 +32,7 @@ public class Control extends PApplet {
 	static String currentDevice;
 	
 	public static void main(String args[]) {
-		br = new Bridge(Integer.parseInt(args[0]));
+		br = new Bridge(args[0]);
 		
 		String className = Control.class.getName();
 	    PApplet.main(new String[] { "--present", className });

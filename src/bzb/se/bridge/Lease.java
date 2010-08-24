@@ -8,8 +8,8 @@ import java.util.Collection;
 import java.util.Date;
 
 public class Lease {
-	public enum Action {
-		add, del
+	public static enum Action {
+		add, del, old
 	}
 
 	public static Iterable<Lease> parseResultSet(final String results) {

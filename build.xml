@@ -48,6 +48,13 @@
 		<copy todir="${dist}/res">
 			<fileset dir="${res}">
 				<include name="*.txt" />
+				<include name="config.xml" />
+			</fileset>
+		</copy>
+		
+		<copy todir="${dist}">
+			<fileset dir="${lib}">
+				<include name="*.so" />
 			</fileset>
 		</copy>
 		
