@@ -28,7 +28,7 @@ import controlP5.Textlabel;
 public class Control extends PApplet {
 
 	static Bridge br;
-	static final String PROBE_MAC = "00:23:76:07:3b:ba";
+	static final String PROBE_MAC = "00:04:20:1b:7d:76";
 	static String currentDevice;
 	
 	public static void main(String args[]) {
@@ -307,7 +307,7 @@ public class Control extends PApplet {
 								signal -= probe.getRssi();
 							}
 							if (controlP5 != null) {
-								s = controlP5.addSlider("d" + PROBE_MAC,0,Bridge.MAX_RSSI,signal,0,4,(int)((double)(screen.width - 200) / 3.0 * 0.75),10);
+								s = controlP5.addSlider("d" + PROBE_MAC,0,Bridge.maxRssi,signal,0,4,(int)((double)(screen.width - 200) / 3.0 * 0.75),10);
 								if (s != null) {
 									s.setGroup(roleGroups[role]);
 									if (signal == 0) {

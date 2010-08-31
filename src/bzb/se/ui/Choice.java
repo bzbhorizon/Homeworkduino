@@ -16,7 +16,7 @@ public class Choice extends PApplet {
 	static final int ROLE_SIGNAL = 0;
 	static final int ROLE_BANDWIDTH = 1;
 	static int role = ROLE_SIGNAL;
-	static final String PROBE_MAC = "00:23:76:07:3b:ba";
+	static final String PROBE_MAC = "00:04:20:1b:7d:76";
 	static String currentDevice;
 
 	public static void main(String args[]) {

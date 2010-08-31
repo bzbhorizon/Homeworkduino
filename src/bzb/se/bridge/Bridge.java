@@ -15,7 +15,6 @@ import gnu.io.SerialPortEvent;
 import gnu.io.SerialPortEventListener;
 import gnu.io.UnsupportedCommOperationException;
 
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -25,14 +24,6 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.TooManyListenersException;
 import java.util.concurrent.CopyOnWriteArrayList;
-
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.parsers.ParserConfigurationException;
-
-import org.w3c.dom.Document;
-import org.w3c.dom.Element;
-import org.xml.sax.SAXException;
 
 import bzb.se.Utility;
 import bzb.se.bridge.online.Feed;
@@ -44,13 +35,13 @@ public class Bridge implements Runnable, SerialPortEventListener {
 	OutputStream outputStream;
 	SerialPort serialPort;
 
-	public static final float MIN_RSSI = 20;
-	public static final float MAX_RSSI = 100;
+	public static float minRssi = -40;
+	public static float maxRssi = -80;
 	static final int MINS_INACTIVITY = 5;
 
 	int role;
 	public String currentDevice;
-	double signalStrength = ((MAX_RSSI - MIN_RSSI) / 2 + MIN_RSSI) / 100;
+	double signalStrength = minRssi / 100;
 	double recentUsageBps = 0.0;
 	double maxUsageBps = 0.0;
 	long maxUsageAt = 0;
@@ -300,8 +291,8 @@ public class Bridge implements Runnable, SerialPortEventListener {
 		LEDsinBinary = new byte[ROWS * 3];
 		for (int i = 0; i < 9; i++) {
 			if (i%3 == rgb) {
-				LEDsinBinary[i] = crap[number][i/3];
-				LEDsinBinary[i] += crap[number2][i/3];
+					LEDsinBinary[i] = crap[number][i/3];
+					LEDsinBinary[i] += crap[number2][i/3];
 			} else {
 				LEDsinBinary[i] = (byte)0;
 			}
@@ -460,73 +451,85 @@ public class Bridge implements Runnable, SerialPortEventListener {
 
 	public void updateLinks() {
 		if (role == 0 && System.currentTimeMillis() - lastUpdated > LINK_POLL_PERIOD) {
-			boolean foundProbe = false;
-			Iterator<Link> links = feed.getLinks().iterator();
-			while (links.hasNext()) {
-				Link link = links.next();
-				if (currentDevice != null
-						&& link.getMacAddress().equals(currentDevice)) {
-					signalStrength = 1 - ((0 - link.getRssi()) - MIN_RSSI) / MAX_RSSI;
-					if (role == 0) {
-						if (signalStrength > 0.5) {
-							lightProportionSequential(signalStrength, 1, -1);
-						} else {
-							lightProportionSequential(signalStrength, 0, -1);
+			new Thread(new Runnable() {
+				public void run () {
+					boolean foundProbe = false;
+					Iterator<Link> links = feed.getLinks().iterator();
+					while (links.hasNext()) {
+						Link link = links.next();
+						if (currentDevice != null
+								&& link.getMacAddress().equals(currentDevice)) {
+							if (link.getRssi() > minRssi) {
+								minRssi = link.getRssi();
+							} else if (link.getRssi() < maxRssi) {
+								maxRssi = link.getRssi();	
+							}
+							if (role == 0) {
+								signalStrength = 1 - ((0 - link.getRssi()) + minRssi) / (0 - maxRssi);
+								System.out.println(signalStrength + " " + minRssi + " " + maxRssi);
+								if (signalStrength > 0.5) {
+									lightProportionSequential(signalStrength, 1, -1);
+								} else {
+									lightProportionSequential(signalStrength, 0, -1);
+								}
+								foundProbe = true;
+							}
+							break;
 						}
-						foundProbe = true;
 					}
-					break;
+					if (!foundProbe) {
+						lightWarning();
+					}
+					lastUpdated = System.currentTimeMillis();
 				}
-			}
-			if (!foundProbe) {
-				lightWarning();
-			}
-			lastUpdated = System.currentTimeMillis();
+			}).start();
 		}
 	}
 
 	private static int lastDevicesVisible = 0;
 	private static int lastLeases = 0;
 	private static final int DEVICE_POLL_PERIOD = 5000;
-	private static final int SIGNIFICANT_RETRIES = 5;
 	
 	public void updateDevices() {
 		if (role == 2 && System.currentTimeMillis() - lastUpdated > DEVICE_POLL_PERIOD) {
-			
-			double r = 0;
-			double g = 0;
-			double b = 0;
-			
-			Map<String, Pair> ids = feed.getDevices();
-
-			if (lastDevicesVisible < ids.size()) {
-				b = 1;
-			}
-			lastDevicesVisible = ids.size();
-			Iterator<Pair> pairs = ids.values().iterator();
-
-			int leases = 0;
-			while (pairs.hasNext()) {
-				Pair pair = pairs.next();
-				if (pair.getLink().getIpAddress() != null) {
-					leases++;
+			new Thread(new Runnable() {
+				public void run () {
+					double r = 0;
+					double g = 0;
+					double b = 0;
+					
+					Map<String, Pair> ids = feed.getDevices();
+		
+					if (lastDevicesVisible < ids.size()) {
+						b = 1;
+					}
+					lastDevicesVisible = ids.size();
+					Iterator<Pair> pairs = ids.values().iterator();
+		
+					int leases = 0;
+					while (pairs.hasNext()) {
+						Pair pair = pairs.next();
+						if (pair.getLink().getIpAddress() != null) {
+							leases++;
+						}
+						if (pair.getLink().getRetryCount() > ((double)pair.getLink().getPacketCount() * 0.25)) {
+							r = 1;
+						}
+					}
+					
+					if (lastLeases < leases) {
+						g = 1;
+					}
+					lastLeases = leases;
+					if (r == 0 && g == 0 && b == 0) {
+						lightsOff();
+					} else {
+						lightProportionSequential(r, g, b);
+					}
+					
+					lastUpdated = System.currentTimeMillis();
 				}
-				if (pair.getLink().getRetryCount() > ((double)pair.getLink().getPacketCount() * 0.25)) {
-					r = 1;
-				}
-			}
-			
-			if (lastLeases < leases) {
-				g = 1;
-			}
-			lastLeases = leases;
-			if (r == 0 && g == 0 && b == 0) {
-				lightsOff();
-			} else {
-				lightProportionSequential(r, g, b);
-			}
-			
-			lastUpdated = System.currentTimeMillis();
+			}).start();
 		}
 	}
 

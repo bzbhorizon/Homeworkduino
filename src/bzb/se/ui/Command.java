@@ -5,12 +5,10 @@ import java.awt.GridLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.KeyEvent;
-import java.io.File;
 
 import javax.swing.AbstractButton;
 import javax.swing.ButtonGroup;
 import javax.swing.ImageIcon;
-import javax.swing.JButton;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
@@ -25,7 +23,7 @@ public class Command extends JPanel implements ActionListener {
 	static final int ROLE_SIGNAL = 0;
 	static final int ROLE_BANDWIDTH = 1;
 	static int role = ROLE_SIGNAL;
-	static final String PROBE_MAC = "00:23:76:07:3b:ba";
+	static final String PROBE_MAC = "00:04:20:1b:7d:76";
 	static String currentDevice;
 
 	public static void main(String args[]) {
