@@ -35,8 +35,8 @@ public class Bridge implements Runnable, SerialPortEventListener {
 	OutputStream outputStream;
 	SerialPort serialPort;
 
-	public static float minRssi = -40;
-	public static float maxRssi = -80;
+	public static float minRssi = 0;
+	public static float maxRssi = -120;
 	static final int MINS_INACTIVITY = 5;
 
 	int role;
@@ -459,14 +459,15 @@ public class Bridge implements Runnable, SerialPortEventListener {
 						Link link = links.next();
 						if (currentDevice != null
 								&& link.getMacAddress().equals(currentDevice)) {
-							if (link.getRssi() > minRssi) {
+							if (link.getRssi() < minRssi) {
 								minRssi = link.getRssi();
-							} else if (link.getRssi() < maxRssi) {
+							} else if (link.getRssi() > maxRssi) {
 								maxRssi = link.getRssi();	
 							}
 							if (role == 0) {
-								signalStrength = 1 - ((0 - link.getRssi()) + minRssi) / (0 - maxRssi);
-								System.out.println(signalStrength + " " + minRssi + " " + maxRssi);
+								float range = Math.abs(minRssi - maxRssi);
+								signalStrength = 1 + (link.getRssi() - maxRssi) / range;
+								System.out.println(signalStrength + " " + link.getRssi() + " " + minRssi + " " + maxRssi);
 								if (signalStrength > 0.5) {
 									lightProportionSequential(signalStrength, 1, -1);
 								} else {
