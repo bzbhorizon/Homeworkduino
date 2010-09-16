@@ -6,6 +6,8 @@ package bzb.se;
 import java.io.BufferedWriter;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
 
 /**
  * @author bzb
@@ -28,7 +30,7 @@ public abstract class Utility {
 	public static void writeToLog (String line) {
 		try {
 		    BufferedWriter out = new BufferedWriter(new FileWriter("res/output.log"));
-		    out.write(line + "/r");
+		    out.write(new SimpleDateFormat("dd:mm:yyyy").format(Calendar.getInstance().getTime()) + ":" + line + "/r");
 		    out.close();
 		} catch (IOException e) {
 			e.printStackTrace();

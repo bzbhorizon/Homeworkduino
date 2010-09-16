@@ -14,6 +14,7 @@ import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JToggleButton;
 
+import bzb.se.Utility;
 import bzb.se.bridge.Bridge;
 
 @SuppressWarnings("serial")
@@ -100,6 +101,7 @@ public class Command extends JPanel implements ActionListener {
 
 	@Override
 	public void actionPerformed(ActionEvent ae) {
+		Utility.writeToLog(ae.getActionCommand());
 		if (ae.getActionCommand().equals("chooseSignal")) {
 			role = 0;
 			currentDevice = PROBE_MAC;
