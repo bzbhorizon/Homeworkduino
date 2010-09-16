@@ -56,14 +56,14 @@ public class Bridge implements Runnable, SerialPortEventListener {
 		while (portList.hasMoreElements()) {
 			portId = portList.nextElement();
 			if (portId.getPortType() == CommPortIdentifier.PORT_SERIAL) {
-				System.out.println(portId.getName());
+				//System.out.println(portId.getName());
 				if (portId.getName().equals(commPort)) {
 					new Thread(this).start();
 					break;
 				}
 			}
 		}
-		System.out.println("Search ended");
+		//System.out.println("Search ended");
 
 		feed = new Feed(this);
 		//feed.run();
@@ -127,6 +127,7 @@ public class Bridge implements Runnable, SerialPortEventListener {
 	public void send(byte[] data) {
 		if (outputStream != null) {
 			try {
+				System.out.println(data);
 				outputStream.write(data);
 				Thread.sleep(500);
 			} catch (IOException e) {
@@ -149,7 +150,7 @@ public class Bridge implements Runnable, SerialPortEventListener {
 	static int lastLEDs = 0;
 
 	public void lightProportionSpread(double percentage, int rgb, int remainderRgb) {
-		System.out.println(percentage);
+		//System.out.println(percentage);
 
 		int LEDs = (int) (percentage * TOTAL_LEDS);
 		int remainderLEDs = TOTAL_LEDS - LEDs;
@@ -180,12 +181,12 @@ public class Bridge implements Runnable, SerialPortEventListener {
 			}
 			send(LEDsinBinary);
 		} else {
-			System.out.println("No change to proportion lit");
+			//System.out.println("No change to proportion lit");
 		}
 	}
 	
 	public void lightProportionSequential(double percentage, int rgb, int remainderRgb) {
-		System.out.println(percentage);
+		//System.out.println(percentage);
 
 		int LEDs = (int) (percentage * TOTAL_LEDS);
 		if (LEDs != lastLEDs) {
@@ -204,7 +205,7 @@ public class Bridge implements Runnable, SerialPortEventListener {
 			}
 			send(LEDsinBinary);
 		} else {
-			System.out.println("No change to proportion lit");
+			//System.out.println("No change to proportion lit");
 		}
 	}
 	
@@ -238,7 +239,7 @@ public class Bridge implements Runnable, SerialPortEventListener {
 			}
 			send(LEDsinBinary);
 		} else {
-			System.out.println("No change to proportion lit");
+			//System.out.println("No change to proportion lit");
 		}
 	}
 
@@ -272,7 +273,7 @@ public class Bridge implements Runnable, SerialPortEventListener {
 	};
 	
 	public void lightIndividual (int number, int rgb) {
-		System.out.print(number + " -> ");
+		//System.out.print(number + " -> ");
 		LEDsinBinary = new byte[ROWS * 3];
 		for (int i = 0; i < 9; i++) {
 			if (i%3 == rgb) {
@@ -280,9 +281,9 @@ public class Bridge implements Runnable, SerialPortEventListener {
 			} else {
 				LEDsinBinary[i] = (byte)0;
 			}
-			System.out.print(LEDsinBinary[i] + " ");
+			//System.out.print(LEDsinBinary[i] + " ");
 		}
-		System.out.println();
+		//System.out.println();
 		send(LEDsinBinary);
 	}
 	
@@ -329,7 +330,7 @@ public class Bridge implements Runnable, SerialPortEventListener {
 					i = 0;
 				}
 				double usage = recentUsageBps / maxUsageBps;
-				System.out.println(usage);
+				//System.out.println(usage);
 				if (usage > 0.9) {
 					lightPair(i, 0);
 					i++;
@@ -430,14 +431,14 @@ public class Bridge implements Runnable, SerialPortEventListener {
 					if (recentUsageBps > maxUsageBps) {
 						maxUsageBps = recentUsageBps;
 						maxUsageAt = System.currentTimeMillis();
-						System.out.println("Raising maximum bandwidth used to " + maxUsageBps / 1000 + "kbps");
+						//System.out.println("Raising maximum bandwidth used to " + maxUsageBps / 1000 + "kbps");
 					}
 					
 					// drop max usage threshold after 5 minutes of lower activity
 					if (System.currentTimeMillis() - maxUsageAt > 1000*60*MINS_INACTIVITY) {
 						maxUsageAt -= 1000*60*MINS_INACTIVITY;
 						maxUsageBps *= 0.75;
-						System.out.println("Decaying maximum bandwidth used to " + maxUsageBps / 1000 + "kbps");
+						//System.out.println("Decaying maximum bandwidth used to " + maxUsageBps / 1000 + "kbps");
 					}
 					
 					lastUpdated = System.currentTimeMillis();
@@ -467,7 +468,7 @@ public class Bridge implements Runnable, SerialPortEventListener {
 							if (role == 0) {
 								float range = Math.abs(minRssi - maxRssi);
 								signalStrength = 1 + (link.getRssi() - maxRssi) / range;
-								System.out.println(signalStrength + " " + link.getRssi() + " " + minRssi + " " + maxRssi);
+								//System.out.println(signalStrength + " " + link.getRssi() + " " + minRssi + " " + maxRssi);
 								if (signalStrength > 0.5) {
 									lightProportionSequential(signalStrength, 1, -1);
 								} else {
