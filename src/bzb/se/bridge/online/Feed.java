@@ -68,6 +68,7 @@ public class Feed implements Runnable {
 		while (true) {
 			if (!rpc.isConnected()) {
 				try {
+					System.out.println("Connecting to database");
 					rpc.connect(InetAddress.getByName("192.168.9.1"),
 							987);
 				} catch (Exception e) {
@@ -200,6 +201,8 @@ public class Feed implements Runnable {
 				} catch (Exception e) {
 				}
 			}
+			
+			System.out.println("Lost connection to hmwk db somehow ...");
 		}
 		
 	}
