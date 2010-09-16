@@ -29,24 +29,27 @@ import bzb.se.Utility;
 import bzb.se.bridge.online.Feed;
 
 public class Bridge implements Runnable, SerialPortEventListener {
-	static CommPortIdentifier portId;
+	private static CommPortIdentifier portId;
 
-	InputStream inputStream;
-	OutputStream outputStream;
-	SerialPort serialPort;
+	private static InputStream inputStream;
+	private static OutputStream outputStream;
+	private static SerialPort serialPort;
 
-	public static float minRssi = 0;
-	public static float maxRssi = -120;
-	static final int MINS_INACTIVITY = 5;
+	private static float minRssi = 0;
+	private static float maxRssi = -120;
+	private static final int MINS_INACTIVITY = 5;
 
-	int role;
-	public String currentDevice;
-	double signalStrength = minRssi / 100;
-	double recentUsageBps = 0.0;
-	double maxUsageBps = 0.0;
-	long maxUsageAt = 0;
+	private static final int LIGHT_DELAY = 1300;
+	private static final int MAX_LIGHT_DELAY = 6000;
+	
+	private static int role;
+	private static String currentDevice;
+	private static double signalStrength = minRssi / 100;
+	private static double recentUsageBps = 0.0;
+	private static double maxUsageBps = 0.0;
+	private static long maxUsageAt = 0;
 
-	public Feed feed;
+	private Feed feed;
 
 	private Heartbeat heartbeat;
 
@@ -68,6 +71,10 @@ public class Bridge implements Runnable, SerialPortEventListener {
 		feed = new Feed(this);
 		//feed.run();
 		new Thread(feed).start();
+	}
+	
+	public void setCurrentDevice(String newCurrentDevice) {
+		currentDevice = newCurrentDevice;
 	}
 
 	public static void main(String args[]) {
@@ -124,7 +131,7 @@ public class Bridge implements Runnable, SerialPortEventListener {
 		}
 	}
 
-	public void send(byte[] data) {
+	private void send(byte[] data) {
 		if (outputStream != null) {
 			try {
 				System.out.println(data);
@@ -141,18 +148,18 @@ public class Bridge implements Runnable, SerialPortEventListener {
 		}
 	}
 	
-	static final int[] ledPositions = new int[]{
+	/*private static final int[] ledPositions = new int[]{
 		1,9,17,2,10,18,3,11,19,4,12,20,5,13,6,14,7,15,8,16
-	};
+	};*/
 
-	public static final int LEDS_PER_ROW = 8;
-	public static final int TOTAL_LEDS = 20;
-	public static final int ROWS = (int) Math.ceil((double) TOTAL_LEDS
+	private static final int LEDS_PER_ROW = 8;
+	private static final int TOTAL_LEDS = 20;
+	private static final int ROWS = (int) Math.ceil((double) TOTAL_LEDS
 			/ (double) LEDS_PER_ROW);
-	public static byte[] LEDsinBinary = new byte[ROWS * 3];
-	static int lastLEDs = 0;
+	private static byte[] LEDsinBinary = new byte[ROWS * 3];
+	private static int lastLEDs = 0;
 
-	public void lightProportionSpread(double percentage, int rgb, int remainderRgb) {
+	private void lightProportionSpread(double percentage, int rgb, int remainderRgb) {
 		//System.out.println(percentage);
 
 		int LEDs = (int) (percentage * TOTAL_LEDS);
@@ -188,7 +195,7 @@ public class Bridge implements Runnable, SerialPortEventListener {
 		}
 	}
 	
-	public void lightProportionSequential(double percentage, int rgb, int remainderRgb) {
+	private void lightProportionSequential(double percentage, int rgb, int remainderRgb) {
 		//System.out.println(percentage);
 
 		int LEDs = (int) (percentage * TOTAL_LEDS);
@@ -212,11 +219,11 @@ public class Bridge implements Runnable, SerialPortEventListener {
 		}
 	}
 	
-	public void lightsOff () {
+	private void lightsOff () {
 		send(new byte[ROWS * 3]);
 	}
 	
-	public void lightProportionSequential(double r, double g, double b) {
+	private void lightProportionSequential(double r, double g, double b) {
 		double total = r + g + b;
 
 		int rLEDs = (int) (r / total * TOTAL_LEDS);
@@ -246,11 +253,11 @@ public class Bridge implements Runnable, SerialPortEventListener {
 		}
 	}
 
-	public void lightWarning () {
+	private void lightWarning () {
 		lightProportionSpread(1, 0, -1);
 	}
 	
-	byte[][] crap = new byte[][]{
+	private byte[][] crap = new byte[][]{
 		new byte[]{1,0,0},
 		new byte[]{0,1,0},
 		new byte[]{0,0,1},
@@ -275,7 +282,7 @@ public class Bridge implements Runnable, SerialPortEventListener {
 		new byte[]{0,(byte)128,0}
 	};
 	
-	public void lightIndividual (int number, int rgb) {
+	private void lightIndividual (int number, int rgb) {
 		//System.out.print(number + " -> ");
 		LEDsinBinary = new byte[ROWS * 3];
 		for (int i = 0; i < 9; i++) {
@@ -290,7 +297,7 @@ public class Bridge implements Runnable, SerialPortEventListener {
 		send(LEDsinBinary);
 	}
 	
-	public void lightPair (int number, int rgb) {
+	private void lightPair (int number, int rgb) {
 		int number2 = (number + TOTAL_LEDS / 2)%TOTAL_LEDS;
 		LEDsinBinary = new byte[ROWS * 3];
 		for (int i = 0; i < 9; i++) {
@@ -304,7 +311,7 @@ public class Bridge implements Runnable, SerialPortEventListener {
 		send(LEDsinBinary);
 	}
 	
-	public void startHeartbeat () {
+	private void startHeartbeat () {
 		if (heartbeat == null) {
 			heartbeat = new Heartbeat();
 		}
@@ -312,13 +319,13 @@ public class Bridge implements Runnable, SerialPortEventListener {
 		new Thread(heartbeat).start();
 	}
 	
-	public void stopHeartbeat () {
+	private void stopHeartbeat () {
 		if (heartbeat != null) {
 			heartbeat.setRunning(false);
 		}
 	}
 	
-	class Heartbeat implements Runnable {
+	private class Heartbeat implements Runnable {
 		
 		private boolean running;
 		
@@ -351,7 +358,7 @@ public class Bridge implements Runnable, SerialPortEventListener {
 					if (delay < 0) {
 						delay = 0;
 					}
-					delay = 1500 + delay * 10000;
+					delay = LIGHT_DELAY + delay * MAX_LIGHT_DELAY;
 					Thread.sleep((long)delay);
 				} catch (InterruptedException e) {
 					e.printStackTrace();
@@ -391,9 +398,9 @@ public class Bridge implements Runnable, SerialPortEventListener {
 		}
 	}
 
-	public void updateRole(int role) {
-		this.role = role;
-		if (this.role == 1) {
+	public void updateRole(int newRole) {
+		role = newRole;
+		if (role == 1) {
 			startHeartbeat();
 		} else {
 			stopHeartbeat();
@@ -405,7 +412,7 @@ public class Bridge implements Runnable, SerialPortEventListener {
 	private long lastUpdated = 0;
 	private static final int FLOW_POLL_PERIOD = 1000;
 
-	boolean flowsUpdating = false;
+	private boolean flowsUpdating = false;
 	
 	public void updateFlows() {
 		if (role == 1 && System.currentTimeMillis() - lastUpdated > FLOW_POLL_PERIOD && !flowsUpdating) {

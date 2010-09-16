@@ -94,7 +94,7 @@ public class Command extends JPanel implements ActionListener {
 
 	static void updateConfig() {
 		if (currentDevice != null) {
-			br.currentDevice = currentDevice;
+			br.setCurrentDevice(currentDevice);
 		}
 		br.updateRole(role);
 	}
