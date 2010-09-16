@@ -3,6 +3,10 @@
  */
 package bzb.se;
 
+import java.io.BufferedWriter;
+import java.io.FileWriter;
+import java.io.IOException;
+
 /**
  * @author bzb
  *
@@ -19,6 +23,16 @@ public abstract class Utility {
 			binary += (int) (Math.pow(2, j - 1));
 		}
 		return binary;
+	}
+	
+	public static void writeToLog (String line) {
+		try {
+		    BufferedWriter out = new BufferedWriter(new FileWriter("res/output.log"));
+		    out.write(line + "/r");
+		    out.close();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
 	}
 	
 }

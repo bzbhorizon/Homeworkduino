@@ -128,11 +128,14 @@ public class Bridge implements Runnable, SerialPortEventListener {
 		if (outputStream != null) {
 			try {
 				System.out.println(data);
+				StringBuffer s = new StringBuffer();
+				for (int i = 0; i < data.length; i++) {
+					s.append(data[i] + " ");
+				}
+				Utility.writeToLog(s.toString());
 				outputStream.write(data);
-				Thread.sleep(500);
+				//Thread.sleep(500);
 			} catch (IOException e) {
-				e.printStackTrace();
-			} catch (InterruptedException e) {
 				e.printStackTrace();
 			}
 		}
