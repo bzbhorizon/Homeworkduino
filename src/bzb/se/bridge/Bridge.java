@@ -131,15 +131,15 @@ public class Bridge implements Runnable, SerialPortEventListener {
 		}
 	}
 
-	private void send(byte[] data) {
+	private void send(byte[] data, String lightCommand) {
 		if (outputStream != null) {
 			try {
-				System.out.println(data);
+				//System.out.println(data);
 				StringBuffer s = new StringBuffer();
 				for (int i = 0; i < data.length; i++) {
 					s.append(data[i] + " ");
 				}
-				Utility.writeToLog(s.toString());
+				Utility.writeToLog(s.toString() + "," + lightCommand);
 				outputStream.write(data);
 				//Thread.sleep(500);
 			} catch (IOException e) {
@@ -189,7 +189,7 @@ public class Bridge implements Runnable, SerialPortEventListener {
 					LEDsinBinary[i * 3 + remainderRgb] = (byte) Utility.toBinary(litThisRow, remainderThisRow);
 				}
 			}
-			send(LEDsinBinary);
+			send(LEDsinBinary, "lightProportionSpread," + percentage + "," + rgb + "," + remainderRgb);
 		} else {
 			//System.out.println("No change to proportion lit");
 		}
@@ -213,14 +213,14 @@ public class Bridge implements Runnable, SerialPortEventListener {
 					}
 				}
 			}
-			send(LEDsinBinary);
+			send(LEDsinBinary, "lightProportionSequential," + percentage + "," + rgb + "," + remainderRgb);
 		} else {
 			//System.out.println("No change to proportion lit");
 		}
 	}
 	
 	private void lightsOff () {
-		send(new byte[ROWS * 3]);
+		send(new byte[ROWS * 3], "lightsOff");
 	}
 	
 	private void lightProportionSequential(double r, double g, double b) {
@@ -247,7 +247,7 @@ public class Bridge implements Runnable, SerialPortEventListener {
 					}
 				}
 			}
-			send(LEDsinBinary);
+			send(LEDsinBinary, "lightProportionSequential," + r + "," + g + "," + b);
 		} else {
 			//System.out.println("No change to proportion lit");
 		}
@@ -294,7 +294,7 @@ public class Bridge implements Runnable, SerialPortEventListener {
 			//System.out.print(LEDsinBinary[i] + " ");
 		}
 		//System.out.println();
-		send(LEDsinBinary);
+		send(LEDsinBinary, "lightIndividual," + number + "," + rgb);
 	}
 	
 	private void lightPair (int number, int rgb) {
@@ -308,7 +308,7 @@ public class Bridge implements Runnable, SerialPortEventListener {
 				LEDsinBinary[i] = (byte)0;
 			}
 		}
-		send(LEDsinBinary);
+		send(LEDsinBinary, "lightPair," + number + "," + rgb);
 	}
 	
 	private void startHeartbeat () {
@@ -471,19 +471,14 @@ public class Bridge implements Runnable, SerialPortEventListener {
 						if (currentDevice != null
 								&& link.getMacAddress().equals(currentDevice)) {
 							if (link.getRssi() < minRssi) {
-								minRssi = link.getRssi();
+								minRssi = link.getRssi() - 5;
 							} else if (link.getRssi() > maxRssi) {
-								maxRssi = link.getRssi();	
+								maxRssi = link.getRssi() + 5;	
 							}
 							if (role == 0) {
 								float range = Math.abs(minRssi - maxRssi);
 								signalStrength = 1 + (link.getRssi() - maxRssi) / range;
-								//System.out.println(signalStrength + " " + link.getRssi() + " " + minRssi + " " + maxRssi);
-								if (signalStrength > 0.5) {
-									lightProportionSequential(signalStrength, 1, -1);
-								} else {
-									lightProportionSequential(signalStrength, 0, -1);
-								}
+								lightProportionSequential(signalStrength, 1, -1);
 								foundProbe = true;
 							}
 							break;

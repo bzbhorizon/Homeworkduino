@@ -29,7 +29,7 @@ public abstract class Utility {
 	
 	public static void writeToLog (String line) {
 		try {
-		    BufferedWriter out = new BufferedWriter(new FileWriter("res/output.log"));
+		    BufferedWriter out = new BufferedWriter(new FileWriter("res/output.log", true));
 		    out.write(System.currentTimeMillis() + "," + new SimpleDateFormat("kk:mm:ss dd/MM/yyyy").format(Calendar.getInstance().getTime()) + "," + line + "\r\n");
 		    out.close();
 		} catch (IOException e) {
