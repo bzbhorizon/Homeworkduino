@@ -48,7 +48,9 @@
 		<copy file="run_dist.sh" tofile="${dist}/run.sh" />
 		<copy todir="${dist}/res">
 			<fileset dir="${res}">
-				<include name="*.txt" />
+				<include name="*.log" />
+				<include name="*.xml" />
+				<include name="*.cfg" />
 				<include name="*.png" />
 			</fileset>
 		</copy>

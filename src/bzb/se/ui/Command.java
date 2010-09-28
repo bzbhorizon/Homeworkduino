@@ -22,7 +22,7 @@ public class Command extends JPanel {
 			public void run () {
 				while (true) {
 					try {
-						br.updateRole(Integer.parseInt(new DataInputStream(new BufferedInputStream(new FileInputStream(new File("res/role")))).readUTF()));
+						br.updateRole(Integer.parseInt(new DataInputStream(new BufferedInputStream(new FileInputStream(new File("res/role.cfg")))).readUTF()));
 					} catch (FileNotFoundException e) {
 						e.printStackTrace();
 					} catch (IOException e) {

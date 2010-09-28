@@ -68,7 +68,7 @@ public class Bridge implements Runnable, SerialPortEventListener {
 				//System.out.println(portId.getName());
 				if (portId.getName().equals(commPort)) {
 					try {
-						probeMac = new DataInputStream(new BufferedInputStream(new FileInputStream(new File("res/probe.mac")))).readUTF();
+						probeMac = new DataInputStream(new BufferedInputStream(new FileInputStream(new File("res/probe.cfg")))).readUTF();
 						new Thread(this).start();
 					} catch (FileNotFoundException e) {
 						e.printStackTrace();
