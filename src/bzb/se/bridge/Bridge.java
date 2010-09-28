@@ -15,6 +15,11 @@ import gnu.io.SerialPortEvent;
 import gnu.io.SerialPortEventListener;
 import gnu.io.UnsupportedCommOperationException;
 
+import java.io.BufferedInputStream;
+import java.io.DataInputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -42,8 +47,9 @@ public class Bridge implements Runnable, SerialPortEventListener {
 	private static final int LIGHT_DELAY = 1300;
 	private static final int MAX_LIGHT_DELAY = 6000;
 	
-	private static int role;
-	private static String currentDevice;
+	private static int role = 1;
+	//private static String currentDevice;
+	private static String probeMac;
 	private static double signalStrength = minRssi / 100;
 	private static double recentUsageBps = 0.0;
 	private static double maxUsageBps = 0.0;
@@ -61,7 +67,14 @@ public class Bridge implements Runnable, SerialPortEventListener {
 			if (portId.getPortType() == CommPortIdentifier.PORT_SERIAL) {
 				//System.out.println(portId.getName());
 				if (portId.getName().equals(commPort)) {
-					new Thread(this).start();
+					try {
+						probeMac = new DataInputStream(new BufferedInputStream(new FileInputStream(new File("res/probe.mac")))).readUTF();
+						new Thread(this).start();
+					} catch (FileNotFoundException e) {
+						e.printStackTrace();
+					} catch (IOException e) {
+						e.printStackTrace();
+					}
 					break;
 				}
 			}
@@ -71,14 +84,6 @@ public class Bridge implements Runnable, SerialPortEventListener {
 		feed = new Feed(this);
 		//feed.run();
 		new Thread(feed).start();
-	}
-	
-	public void setCurrentDevice(String newCurrentDevice) {
-		currentDevice = newCurrentDevice;
-	}
-
-	public static void main(String args[]) {
-		new Bridge(args[0]);
 	}
 
 	public void end() {
@@ -118,8 +123,6 @@ public class Bridge implements Runnable, SerialPortEventListener {
 			} catch (InterruptedException e) {
 				e.printStackTrace();
 			}
-
-			updateRole(1);
 		} catch (UnsupportedCommOperationException e) {
 			System.out.println(e);
 		} catch (PortInUseException e) {
@@ -141,7 +144,11 @@ public class Bridge implements Runnable, SerialPortEventListener {
 				}
 				Utility.writeToLog(s.toString() + "," + lightCommand);
 				outputStream.write(data);
-				//Thread.sleep(500);
+				try {
+					Thread.sleep(500);
+				} catch (InterruptedException e) {
+					e.printStackTrace();
+				}
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
@@ -468,8 +475,8 @@ public class Bridge implements Runnable, SerialPortEventListener {
 					Iterator<Link> links = feed.getLinks().iterator();
 					while (links.hasNext()) {
 						Link link = links.next();
-						if (currentDevice != null
-								&& link.getMacAddress().equals(currentDevice)) {
+						if (probeMac != null
+								&& link.getMacAddress().equals(probeMac)) {
 							if (link.getRssi() < minRssi) {
 								minRssi = link.getRssi() - 5;
 							} else if (link.getRssi() > maxRssi) {
