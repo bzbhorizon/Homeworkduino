@@ -44,7 +44,7 @@ public class JavaSRPC
 					final int rseqno = is.readInt();
 					assert (rseqno == seqno);
 					final Command command = getCommand(is.readUnsignedShort());
-					Utility.writeToLog("Received " + command);
+					////Utility.writeToLog("Received " + command);
 					final int fragment = is.readUnsignedByte();
 					final int fragmentCount = is.readUnsignedByte();
 
@@ -128,7 +128,7 @@ public class JavaSRPC
 				}
 				catch (final IOException e)
 				{
-					Utility.writeToLog(e.getMessage());
+					//Utility.writeToLog(e.getMessage());
 				}
 			}
 		}
@@ -152,7 +152,7 @@ public class JavaSRPC
 				}
 				catch (final InterruptedException e)
 				{
-					Utility.writeToLog(e.getMessage());
+					//Utility.writeToLog(e.getMessage());
 				}
 
 				if (state == RPCState.TIMEDOUT)
@@ -170,7 +170,7 @@ public class JavaSRPC
 						attemptsLeft--;
 						if (attemptsLeft > 0)
 						{
-							Utility.writeToLog("Resending " + attemptsLeft);
+							//Utility.writeToLog("Resending " + attemptsLeft);
 							try
 							{
 								resend();
@@ -179,12 +179,12 @@ public class JavaSRPC
 							}
 							catch (final IOException e)
 							{
-								Utility.writeToLog(e.getMessage());
+								//Utility.writeToLog(e.getMessage());
 							}
 						}
 						else
 						{
-							Utility.writeToLog("TIMED OUT!");
+							//Utility.writeToLog("TIMED OUT!");
 							setState(RPCState.TIMEDOUT);
 						}
 					}
@@ -280,7 +280,7 @@ public class JavaSRPC
 
 	public void connect(final InetAddress address, final int port) throws SocketException, IOException
 	{
-		Utility.writeToLog(address.toString() + ":" + port);
+		//Utility.writeToLog(address.toString() + ":" + port);
 		socket = new DatagramSocket();
 		socket.connect(address, port);
 
@@ -386,7 +386,7 @@ public class JavaSRPC
 
 	private synchronized void sendCommand(final Command command, final RPCState newState) throws IOException
 	{
-		Utility.writeToLog("Send " + command);
+		//Utility.writeToLog("Send " + command);
 		sendBytes(getBytes(command));
 		setState(newState);
 	}
@@ -394,21 +394,21 @@ public class JavaSRPC
 	private synchronized void sendCommand(final Command command, final RPCState newState, final byte[] data,
 			final int fragment, final int fragmentCount) throws IOException
 	{
-		Utility.writeToLog("Send " + command);
+		//Utility.writeToLog("Send " + command);
 		sendBytes(getBytes(command, data, fragment, fragmentCount));
 		setState(newState);
 	}
 
 	private synchronized final void setState(final RPCState newState)
 	{
-		Utility.writeToLog("Set state " + newState);
+		//Utility.writeToLog("Set state " + newState);
 		this.state = newState;
 		notify();
 	}
 
 	private synchronized void waitForState(final EnumSet<RPCState> set)
 	{
-		Utility.writeToLog("Waiting for " + set);
+		//Utility.writeToLog("Waiting for " + set);
 		while (!set.contains(state))
 		{
 			try
@@ -417,9 +417,9 @@ public class JavaSRPC
 			}
 			catch (final InterruptedException e)
 			{
-				Utility.writeToLog(e.getMessage());
+				//Utility.writeToLog(e.getMessage());
 			}
 		}
-		Utility.writeToLog("Waiting over, state = " + state);
+		//Utility.writeToLog("Waiting over, state = " + state);
 	}
 }

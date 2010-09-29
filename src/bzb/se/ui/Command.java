@@ -1,10 +1,9 @@
 package bzb.se.ui;
 
-import java.io.BufferedInputStream;
-import java.io.DataInputStream;
+import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.FileReader;
 import java.io.IOException;
 
 import javax.swing.JPanel;
@@ -19,10 +18,13 @@ public class Command extends JPanel {
 	public static void main(String args[]) {
 		br = new Bridge(args[0]);
 		new Thread(new Runnable() {
+			private BufferedReader buf;
+
 			public void run () {
 				while (true) {
 					try {
-						br.updateRole(Integer.parseInt(new DataInputStream(new BufferedInputStream(new FileInputStream(new File("res/role.cfg")))).readUTF()));
+						buf = new BufferedReader(new FileReader(new File("res/role.cfg")));
+						br.updateRole(Integer.parseInt(buf.readLine()));
 					} catch (FileNotFoundException e) {
 						e.printStackTrace();
 					} catch (IOException e) {

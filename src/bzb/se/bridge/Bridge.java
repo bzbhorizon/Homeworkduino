@@ -15,11 +15,10 @@ import gnu.io.SerialPortEvent;
 import gnu.io.SerialPortEventListener;
 import gnu.io.UnsupportedCommOperationException;
 
-import java.io.BufferedInputStream;
-import java.io.DataInputStream;
+import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -47,7 +46,7 @@ public class Bridge implements Runnable, SerialPortEventListener {
 	private static final int LIGHT_DELAY = 1300;
 	private static final int MAX_LIGHT_DELAY = 6000;
 	
-	private static int role = 1;
+	private static int role = -1;
 	//private static String currentDevice;
 	private static String probeMac;
 	private static double signalStrength = minRssi / 100;
@@ -68,7 +67,7 @@ public class Bridge implements Runnable, SerialPortEventListener {
 				//System.out.println(portId.getName());
 				if (portId.getName().equals(commPort)) {
 					try {
-						probeMac = new DataInputStream(new BufferedInputStream(new FileInputStream(new File("res/probe.cfg")))).readUTF();
+						probeMac = new BufferedReader(new FileReader(new File("res/probe.cfg"))).readLine();
 						new Thread(this).start();
 					} catch (FileNotFoundException e) {
 						e.printStackTrace();
@@ -143,6 +142,7 @@ public class Bridge implements Runnable, SerialPortEventListener {
 					s.append(data[i] + " ");
 				}
 				Utility.writeToLog(s.toString() + "," + lightCommand);
+				//System.out.println(s.toString());
 				outputStream.write(data);
 				try {
 					Thread.sleep(500);
@@ -366,6 +366,7 @@ public class Bridge implements Runnable, SerialPortEventListener {
 						delay = 0;
 					}
 					delay = LIGHT_DELAY + delay * MAX_LIGHT_DELAY;
+					//System.out.println(delay);
 					Thread.sleep((long)delay);
 				} catch (InterruptedException e) {
 					e.printStackTrace();
@@ -406,14 +407,16 @@ public class Bridge implements Runnable, SerialPortEventListener {
 	}
 
 	public void updateRole(int newRole) {
-		role = newRole;
-		if (role == 1) {
-			startHeartbeat();
-		} else {
-			stopHeartbeat();
+		if (role != newRole) {
+			role = newRole;
+			if (role == 1) {
+				startHeartbeat();
+			} else {
+				stopHeartbeat();
+			}
+			LEDsinBinary = new byte[ROWS * 3];
+			lastLEDs = 0;
 		}
-		LEDsinBinary = new byte[ROWS * 3];
-		lastLEDs = 0;
 	}
 
 	private long lastUpdated = 0;
@@ -465,7 +468,7 @@ public class Bridge implements Runnable, SerialPortEventListener {
 		}
 	}
 	
-	private static final int LINK_POLL_PERIOD = 500;
+	private static final int LINK_POLL_PERIOD = 1500;
 
 	public void updateLinks() {
 		if (role == 0 && System.currentTimeMillis() - lastUpdated > LINK_POLL_PERIOD) {
